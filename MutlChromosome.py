@@ -156,7 +156,7 @@ class MutlChromosome:
         for x in range(0, 30):
             if os.path.isfile('result.obj'):
                 os.remove("result.obj")
-            os.system("python3 WeatherPesdraintNpcWithMutation2/simulation.py scenario.obj result.obj")
+            os.system("python3 simulation.py scenario.obj result.obj")
             resultObj = None
 
             # Read fitness score

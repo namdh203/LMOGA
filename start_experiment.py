@@ -28,7 +28,7 @@ def main():
         s_f.truncate()
         s_f.close()
 
-        os.system("python3 WeatherPesdraintNpcWithMutation2/simulation.py scenario.obj result.obj")
+        os.system("python3 simulation.py scenario.obj result.obj")
         resultObj = None
 
         # Read fitness score

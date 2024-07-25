@@ -15,15 +15,19 @@ import numpy as np
 
 from MutlChromosome import MutlChromosome
 
+APOLLO_HOST = '112.137.129.158'  # or 'localhost'
+PORT = 8966
+DREAMVIEW_PORT = 9988
+BRIDGE_PORT = 9090
 
 class LgApSimulation:
     def __init__(self):
-        self.SIMULATOR_HOST = os.environ.get("SIMULATOR_HOST", "127.0.0.1")
-        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", 8181))
+        self.SIMULATOR_HOST = os.environ.get("SIMULATOR_HOST", APOLLO_HOST)
+        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", PORT))
         self.BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "127.0.0.1")
-        self.BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", 9090))
+        self.BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", BRIDGE_PORT))
         self.totalSimTime = 15
-        self.bridgeLogPath = "/home/zoe/apollo/data/log/cyber_bridge.INFO"
+        self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO"
 
         self.sim = None
         self.ego = None  # There is only one ego
