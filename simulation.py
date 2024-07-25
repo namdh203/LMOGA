@@ -15,19 +15,19 @@ import numpy as np
 
 from MutlChromosome import MutlChromosome
 
-APOLLO_HOST = '112.137.129.158'  # or 'localhost'
+APOLLO_HOST = "112.137.129.158"  # or 'localhost'
 PORT = 8966
 DREAMVIEW_PORT = 9988
 BRIDGE_PORT = 9090
 
 class LgApSimulation:
     def __init__(self):
-        self.SIMULATOR_HOST = os.environ.get("SIMULATOR_HOST", APOLLO_HOST)
-        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", PORT))
-        self.BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+        self.SIMULATOR_HOST = os.environ.get("SIMULATOR_HOST", "127.0.0.1")
+        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", 8966))
+        self.BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "112.137.129.158")
         self.BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", BRIDGE_PORT))
         self.totalSimTime = 15
-        self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO"
+        # self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO"
 
         self.sim = None
         self.ego = None  # There is only one ego
@@ -55,7 +55,7 @@ class LgApSimulation:
         sim = lgsvl.Simulator(self.SIMULATOR_HOST, self.SIMULATOR_PORT)
         self.sim = sim
 
-    def loadMap(self, mapName="SanFrancisco"):
+    def loadMap(self, mapName="12da60a7-2fc9-474d-a62a-5cc08cb97fe8"):
         sim = self.sim
         if sim.current_scene == mapName:
             sim.reset()
@@ -67,7 +67,7 @@ class LgApSimulation:
         egoState = lgsvl.AgentState()
         spawn = sim.get_spawn()
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
-        ego = sim.add_agent(lgsvl.wise.DefaultAssets.ego_lincoln2017mkz_apollo6_perception, lgsvl.AgentType.EGO,
+        ego = sim.add_agent("98dd4583-f770-4bfa-bd06-a97821839db9", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
 
@@ -77,10 +77,10 @@ class LgApSimulation:
         while not ego.bridge_connected:
             time.sleep(1)
         print("Bridge connected")
-
+        print(self.BRIDGE_HOST)
         # Dreamview setup
-        dv = lgsvl.dreamview.Connection(self.sim, ego, self.BRIDGE_HOST)
-        dv.set_hd_map('SanFrancisco')
+        dv = lgsvl.dreamview.Connection(self.sim, ego, str(DREAMVIEW_PORT))
+        dv.set_hd_map('12da60a7-2fc9-474d-a62a-5cc08cb97fe8')
         dv.set_vehicle('Lincoln2017MKZ_LGSVL')
         spawns = self.sim.get_spawn()
 
@@ -535,10 +535,10 @@ class LgApSimulation:
                         minNpcSituation[k] = [minD, min_situation, npcth]
                         k += 1
 
-                    fbr = open(self.bridgeLogPath, 'r')
-                    fbrLines = fbr.readlines()
-                    for line in fbrLines:
-                        pass
+                    # fbr = open(self.bridgeLogPath, 'r')
+                    # fbrLines = fbr.readlines()
+                    # for line in fbrLines:
+                    #     pass
 
                     # restart Apollo when ego offline
                     while not ego.bridge_connected:

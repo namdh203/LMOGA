@@ -3,7 +3,7 @@ import os
 import pickle
 from dotmap import DotMap
 
-sys.path.append('/home/zoe/PycharmProjects/reduceRestart/')
+sys.path.append('/home/kasm_user/PycharmProjects/reduceRestart/')
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     GaData.popSize = 4
     GaData.numOfNpc = 3
     GaData.numOfTimeSlice = 5
-    GaData.maxGen = 300
+    GaData.maxGen = 3 #600
     isRestart = False
     count = 0
 
