@@ -12,19 +12,20 @@ import copy
 from MultiObjGeneticAlgorithm import MultiObjGenticAlgorithm
 from os import listdir
 import numpy as np
+from lgsvl.dreamview import CoordType
 
 from MutlChromosome import MutlChromosome
 
 APOLLO_HOST = "112.137.129.158"  # or 'localhost'
-PORT = 8966
+PORT = 8977
 DREAMVIEW_PORT = 9988
 BRIDGE_PORT = 9090
 
 class LgApSimulation:
     def __init__(self):
         self.SIMULATOR_HOST = os.environ.get("SIMULATOR_HOST", "127.0.0.1")
-        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", 8966))
-        self.BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "112.137.129.158")
+        self.SIMULATOR_PORT = int(os.environ.get("SIMULATOR_PORT", PORT))
+        self.BRIDGE_HOST = os.environ.get("BRIDGE_HOST", APOLLO_HOST)
         self.BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", BRIDGE_PORT))
         self.totalSimTime = 15
         # self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO"
@@ -67,6 +68,8 @@ class LgApSimulation:
         egoState = lgsvl.AgentState()
         spawn = sim.get_spawn()
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
+        forward = lgsvl.utils.transform_to_forward(egoState.transform)
+        egoState.velocity = 3 * forward
         ego = sim.add_agent("98dd4583-f770-4bfa-bd06-a97821839db9", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
@@ -79,9 +82,9 @@ class LgApSimulation:
         print("Bridge connected")
         print(self.BRIDGE_HOST)
         # Dreamview setup
-        dv = lgsvl.dreamview.Connection(self.sim, ego, str(DREAMVIEW_PORT))
-        dv.set_hd_map('12da60a7-2fc9-474d-a62a-5cc08cb97fe8')
-        dv.set_vehicle('Lincoln2017MKZ_LGSVL')
+        dv = lgsvl.dreamview.Connection(self.sim, ego, APOLLO_HOST, str(DREAMVIEW_PORT))
+        # dv.set_hd_map('SanFrancisco')
+        # dv.set_vehicle('Lincoln2017MKZ_LGSVL')
         spawns = self.sim.get_spawn()
 
         modules = [
@@ -96,9 +99,10 @@ class LgApSimulation:
             'Control'
         ]
         destination = spawns[0].destinations[0]
-        dv.disable_apollo()
-        # dv.setup_apollo(destination.position.x, destination.position.z, modules)
-        dv.setup_apollo(self.endEvPos.x, self.endEvPos.z, modules)
+        # dv.disable_apollo()
+        # dv.setup_apollo(destination.position.x, destination.position.z, 0, modules)
+        # dv.setup_apollo(self.endEvPos.x, self.endEvPos.z, 0, modules)
+        dv.set_destination(self.endEvPos.x, self.endEvPos.z, 0, CoordType.Unity)
         time.sleep(5)
 
     def addNpcVehicle(self, posVector, vehicleType="SUV"):
@@ -194,28 +198,28 @@ class LgApSimulation:
             ttc = 99999999
         return ttc
 
-    def findPathSimilarity(self, egoPathList, router):
-        """
-        path similarity of ego vehicle
-        one of the parameters of the fitness function
-        """
-        a = 4.191e-08
-        b = - 1.579e-05
-        c = 0.003641
-        d = 765.5
-        egoSimilarity = []
-        k = 0
-        for egoPath in egoPathList:
-            # pred_x = w * egoPath.z + b
-            pred_x = a * egoPath.z * egoPath.z * egoPath.z + b * egoPath.z * egoPath.z + c * egoPath.z + d
-            # if pred_x-0.5 <= egoPath.x <= pred_x+0.5:
-            if egoPath.x < pred_x or pred_x < egoPath.x:
-                egoSimilarity.append(math.sqrt((router[k].x - egoPath.x) ** 2 + (router[k].z - egoPath.z) ** 2))
-            k += 1
+    # def findPathSimilarity(self, egoPathList, router):
+    #     """
+    #     path similarity of ego vehicle
+    #     one of the parameters of the fitness function
+    #     """
+    #     a = 4.191e-08
+    #     b = - 1.579e-05
+    #     c = 0.003641
+    #     d = 765.5
+    #     egoSimilarity = []
+    #     k = 0
+    #     for egoPath in egoPathList:
+    #         # pred_x = w * egoPath.z + b
+    #         pred_x = a * egoPath.z * egoPath.z * egoPath.z + b * egoPath.z * egoPath.z + c * egoPath.z + d
+    #         # if pred_x-0.5 <= egoPath.x <= pred_x+0.5:
+    #         if egoPath.x < pred_x or pred_x < egoPath.x:
+    #             egoSimilarity.append(math.sqrt((router[k].x - egoPath.x) ** 2 + (router[k].z - egoPath.z) ** 2))
+    #         k += 1
 
-        if egoSimilarity == []:
-            egoSimilarity.append(1)
-        return np.var(egoSimilarity)
+    #     if egoSimilarity == []:
+    #         egoSimilarity.append(1)
+    #     return np.var(egoSimilarity)
 
     def findFitness(self, deltaDlist, dList, isEgoFault, isHit, hitTime):
         """
@@ -312,9 +316,9 @@ class LgApSimulation:
         MinNpcSituations = [[self.maxint for i in range(numOfTimeSlice)] for j in range(numOfNpc)]
         egoSpeedList = []
         egoPathList = []
-        router = open('trajectory.obj', 'rb')
-        localPath = pickle.load(router)
-        router.close()
+        # router = open('trajectory.obj', 'rb')
+        # localPath = pickle.load(router)
+        # router.close()
 
         sim.weather = lgsvl.WeatherState(rain=weather[0], fog=weather[1], wetness=weather[2], cloudiness=weather[3],
                                          damage=weather[4])
@@ -580,7 +584,7 @@ class LgApSimulation:
         ttc = self.findFitness(deltaDList, dList, self.isEgoFault, self.isHit, hitTime)
         resultDic['ttc'] = -ttc
         resultDic['smoothness'] = self.jerk(egoSpeedList)
-        resultDic['pathSimilarity'] = self.findPathSimilarity(egoPathList, localPath)
+        # resultDic['pathSimilarity'] = self.findPathSimilarity(egoPathList, localPath)
         resultDic['MinNpcSituations'] = MinNpcSituations
         resultDic['egoSpeed'] = self.egoSpeed
         resultDic['egoLocation'] = self.egoLocation
@@ -729,7 +733,7 @@ class LgApSimulation:
                 chromsome.ttc = result1['ttc']
                 chromsome.MinNpcSituations = result1['MinNpcSituations']
                 chromsome.smoothness = result1['smoothness']
-                chromsome.pathSimilarity = result1['pathSimilarity']
+                # chromsome.pathSimilarity = result1['pathSimilarity']
                 chromsome.egoSpeed = result1['egoSpeed']
                 chromsome.egoLocation = result1['egoLocation']
                 chromsome.npcSpeed = result1['npcSpeed']
@@ -777,7 +781,7 @@ class LgApSimulation:
                 eachChs.ttc = res['ttc']
                 eachChs.MinNpcSituations = res['MinNpcSituations']
                 eachChs.smoothness = res['smoothness']
-                eachChs.pathSimilarity = res['pathSimilarity']
+                # eachChs.pathSimilarity = res['pathSimilarity']
                 eachChs.egoSpeed = res['egoSpeed']
                 eachChs.egoLocation = res['egoLocation']
                 eachChs.npcSpeed = res['npcSpeed']
