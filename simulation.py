@@ -33,7 +33,7 @@ class LgApSimulation:
 
         self.sim = None
         self.ego = None  # There is only one ego
-        self.initEvPos = lgsvl.Vector(769, 10, 5)
+        self.initEvPos = lgsvl.Vector(769, 10, -49)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
         self.npcList = []  # The list contains all the npc added
         self.pedetrianList = []
@@ -70,7 +70,7 @@ class LgApSimulation:
         spawn = sim.get_spawn()
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
         forward = lgsvl.utils.transform_to_forward(egoState.transform)
-        egoState.velocity = 3 * forward
+        egoState.velocity = 2 * forward
         ego = sim.add_agent("98dd4583-f770-4bfa-bd06-a97821839db9", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
@@ -597,7 +597,7 @@ class LgApSimulation:
         if self.isEgoFault:
             resultDic['fault'] = 'ego'
         util.print_debug(" === Finish simulation === ")
-        util.print_debug(resultDic)
+        # util.print_debug(resultDic)
 
         return resultDic
 
@@ -616,6 +616,10 @@ class LgApSimulation:
             signal = self.sim.get_controllable(c.transform.position, "signal")
             control_policy = "trigger=200;green=50;yellow=0;red=0;loop"
             signal.control(control_policy)
+
+        # Print ego position
+        print("====== Ego Position ======")
+        print(ego.state.position.x, ego.state.position.z)
 
         # Set initial position of npc vehicle
         npcPosition = []
@@ -710,6 +714,11 @@ class LgApSimulation:
             print("is restart")
             ge.set_checkpoint('GaCheckpointsCrossroads/last_gen.obj')
 
+        # check ck_path
+        print("---- Check any ge checkpoint path ----")
+        if ge.ck_path is not None:
+            print(ge.ck_path)
+
         # load last iteration
         if ge.ck_path is not None:
             if os.path.exists(ge.ck_path):
@@ -722,7 +731,7 @@ class LgApSimulation:
         # after restart
         else:
             for i in range(ge.pop_size):
-                print("-------------------{i}scenario---------".format(i=i))
+                print("-------------------scenario: {i}th ---------".format(i=i))
                 chromsome = MutlChromosome(ge.bounds, ge.NPC_size, ge.time_size, None)
                 chromsome.rand_init()
                 # result1 = DotMap()
@@ -746,7 +755,7 @@ class LgApSimulation:
                 if self.isCollision:
                     self.isCollision = False
 
-                    print("collision=============")
+                    print("============= Collision =============")
                     util.print_debug(" ***** Found an accident where ego is at fault ***** ")
                     # Dump the scenario where causes the accident
                     if os.path.exists('AccidentScenarioCrossroads') == False:
@@ -792,7 +801,7 @@ class LgApSimulation:
 
                 if self.isCollision:
                     self.isCollision = False
-                    print("collision=============")
+                    print("=============Collision=============")
                     util.print_debug(" ***** Found an accident where ego is at fault ***** ")
                     # Dump the scenario where causes the accident
                     if os.path.exists('AccidentScenarioCrossroads') == False:
@@ -836,6 +845,7 @@ class LgApSimulation:
 # Read scenario obj
 objPath = sys.argv[1]
 resPath = sys.argv[2]
+
 objF = open(objPath, 'rb')
 scenarioObj = pickle.load(objF)
 objF.close()

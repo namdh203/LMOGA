@@ -19,6 +19,7 @@ def main():
     count = 0
 
     for x in range(0, GaData.maxGen):
+        print("==== This is iteration: {x}th of maxGenaration ====")
         if os.path.isfile('result.obj'):
             os.remove("result.obj")
         # Dump genetic algorithm parameters
