@@ -14,12 +14,12 @@ def main():
     GaData.popSize = 4
     GaData.numOfNpc = 3
     GaData.numOfTimeSlice = 5
-    GaData.maxGen = 3 #600
+    GaData.maxGen = 8 #600
     isRestart = False
     count = 0
 
     for x in range(0, GaData.maxGen):
-        print("==== This is iteration: {x}th of maxGenaration ====")
+        print("==== This is iteration: {x}th of maxGenaration ====".format(x = x))
         if os.path.isfile('result.obj'):
             os.remove("result.obj")
         # Dump genetic algorithm parameters

@@ -663,16 +663,26 @@ class LgApSimulation:
                     npc_z -= random.uniform(17, 27)
 
             for npcLocate in npcPosition:
-                if npc_x == self.initEvPos.x:
-                    if abs(npc_z - self.initEvPos.x) <= 5:
-                        if npcDetail[i][1] == -1:
+                if abs(npc_x - self.initEvPos.x) <= 5:
+                    if npcDetail[i][0] == -1 or npcDetail[i][0] == 0:
+                        npc_x -= 5
+                    elif npcDetail[i][0] == 1:
+                        npc_x += 5
+                        
+                    if abs(npc_z - self.initEvPos.z) <= 5:
+                        if npcDetail[i][1] == -1 or npcDetail[i][1] == 0:
                             npc_z -= 5
                         elif npcDetail[i][1] == 1:
                             npc_z += 5
 
-                if npc_x == npcLocate[0]:
+                if abs(npc_x - npcLocate[0]) <= 5:
+                    if npcDetail[i][0] == -1 or npcDetail[i][0] == 0:
+                        npc_x -= 5
+                    elif npcDetail[i][0] == 1:
+                        npc_x += 5
+
                     if abs(npc_z - npcLocate[2]) <= 5:
-                        if npcDetail[i][1] == -1:
+                        if npcDetail[i][1] == -1 or npcDetail[i][1] == 0:
                             npc_z -= 5
                         elif npcDetail[i][1] == 1:
                             npc_z += 5
