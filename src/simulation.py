@@ -72,7 +72,7 @@ class LgApSimulation:
         spawn = sim.get_spawn()
         if self.roadNum == 1:
             if self.mapName == "bd77ac3b-fbc3-41c3-a806-25915c777022":      #tartu
-                self.initEvPos = lgsvl.Vector(213.8, 35.7, 122,8)
+                self.initEvPos = lgsvl.Vector(213.8, 35.7, 122.8)
             elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
                 self.initEvPos = lgsvl.Vector(-768.9, 10.2, 224.1)
             elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
@@ -88,6 +88,7 @@ class LgApSimulation:
         ego = sim.add_agent("98dd4583-f770-4bfa-bd06-a97821839db9", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
+        sim.set_time_of_day((10 + time_offset) % 24, fixed=True)
 
     def connectEvToApollo(self):
         ego = self.ego
@@ -117,6 +118,18 @@ class LgApSimulation:
         # dv.disable_apollo()
         # dv.setup_apollo(destination.position.x, destination.position.z, 0, modules)
         # dv.setup_apollo(self.endEvPos.x, self.endEvPos.z, 0, modules)
+        if self.roadNum == 1:
+            if self.mapName == "bd77ac3b-fbc3-41c3-a806-25915c777022":      #tartu
+                self.endEvPos = lgsvl.Vector(338.4, 35.7, 286.9)
+            elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
+                self.endEvPos = lgsvl.Vector(-494.3, 10.2, 294.7)
+            elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
+                self.endEvPos = lgsvl.Vector(348.2, -1.4, -64.4)
+        elif self.roadNum == 2:
+            self.endEvPos = lgsvl.Vector(-384.6, 10.2, -357.8)
+        elif self.roadNum == 3:
+            self.endEvPos = lgsvl.Vector(-208.2, 10.2, -181.6)
+
         dv.set_destination(self.endEvPos.x, self.endEvPos.z, 0, CoordType.Unity)
         time.sleep(5)
 
