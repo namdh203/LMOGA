@@ -48,6 +48,8 @@ class LgApSimulation:
         self.maxint = 130
         self.egoFaultDeltaD = 0
         self.isCollision = False
+        self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
+        self.roadNum = 1
 
     def get_speed(self, vehicle):
         vel = vehicle.state.velocity
@@ -68,6 +70,18 @@ class LgApSimulation:
         sim = self.sim
         egoState = lgsvl.AgentState()
         spawn = sim.get_spawn()
+        if self.roadNum == 1:
+            if self.mapName == "bd77ac3b-fbc3-41c3-a806-25915c777022":      #tartu
+                self.initEvPos = lgsvl.Vector(213.8, 35.7, 122,8)
+            elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
+                self.initEvPos = lgsvl.Vector(-768.9, 10.2, 224.1)
+            elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
+                self.initEvPos = lgsvl.Vector(-40.3, -1.4, -11.8)
+        elif self.roadNum == 2:
+            self.initEvPos = lgsvl.Vector(-442.1, 10.2, -65.1)
+        elif self.roadNum == 3:
+            self.initEvPos = lgsvl.Vector(-62.7, 10.2, -110.2)
+
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
         forward = lgsvl.utils.transform_to_forward(egoState.transform)
         egoState.velocity = 2 * forward
@@ -668,7 +682,7 @@ class LgApSimulation:
                         npc_x -= 5
                     elif npcDetail[i][0] == 1:
                         npc_x += 5
-                        
+
                     if abs(npc_z - self.initEvPos.z) <= 5:
                         if npcDetail[i][1] == -1 or npcDetail[i][1] == 0:
                             npc_z -= 5
