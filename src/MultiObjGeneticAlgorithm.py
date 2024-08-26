@@ -7,7 +7,7 @@ from datetime import datetime
 import util
 import math
 from MutlChromosome import MutlChromosome
-# import generateRestart
+import generateRestart
 import dataAnalysis
 import dataProcessing
 
@@ -232,7 +232,7 @@ class MultiObjGenticAlgorithm:
                 dataAnalysis.fileProcessing('clusterData', self.NPC_size)
                 pools = dataAnalysis.genePool('clusterData', self.NPC_size)
                 nums = (len(pools['actionAtom']) + len(pools['actionMotif'])) // 2
-                # newPop = generateRestart.generateRestart(nums, self.bounds, self.NPC_size, self.time_size, pools)
+                newPop = generateRestart.generateRestart(nums, self.bounds, self.NPC_size, self.time_size, pools)
                 dataAnalysis.deleteFile('clusterData')
                 self.pop = copy.deepcopy(newPop)
                 self.hasRestarted = True
