@@ -3,14 +3,15 @@ import pickle
 from environs import Env
 import lgsvl
 import random
-
+import sys
 
 def replay(scenario, sim):
 
-    if sim.current_scene == lgsvl.wise.DefaultAssets.map_sanfrancisco:
+    if sim.current_scene == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":
         sim.reset()
     else:
-        sim.load(lgsvl.wise.DefaultAssets.map_sanfrancisco)
+        sim.load("12da60a7-2fc9-474d-a62a-5cc08cb97fe8")
+    sim.set_time_of_day(19, fixed=True)
 
     ego_location = scenario.egoLocation
     ego_speed = scenario.egoSpeed
@@ -20,11 +21,15 @@ def replay(scenario, sim):
     # create ego
     ego_state = lgsvl.AgentState()
     ego_state.transform = ego_location[0]
-    ego = sim.add_agent("SUV", lgsvl.AgentType.NPC, ego_state)
+    ego = sim.add_agent("SUV", lgsvl.AgentType.NPC,
+                            ego_state)
+
+    # sim.set_follow(ego, follow_distance = 5, follow_height = 2)
 
     # create npc
-    n = len(npc_location)
-    m = len(ego_location)
+    n = len(npc_location) #num of npc
+    m = len(ego_location) #num of ego location
+    print("num of location", len(npc_location[0]), m)
     npc = []
     for i in range(n):
         npc_state = lgsvl.AgentState()
@@ -57,17 +62,22 @@ def replay(scenario, sim):
         npc[i].follow(npc_waypoints)
 
     # set simulation camera
-    cam_tr = ego_location[0]
-    up = lgsvl.utils.transform_to_up(cam_tr)
-    forward = lgsvl.utils.transform_to_forward(cam_tr)
-    cam_tr.position += up * 3 - forward * 5
-    sim.set_sim_camera(cam_tr)
+    # cam_tr = ego_location[0]
+    # up = lgsvl.utils.transform_to_up(cam_tr)
+    # forward = lgsvl.utils.transform_to_forward(cam_tr)
+    # cam_tr.position += up * 3 - forward * 5
+    # sim.set_sim_camera(cam_tr)
 
     # run simulation
     cnt = 0
     while cnt < m:
+        cam_tr = ego_location[cnt]
+        up = lgsvl.utils.transform_to_up(cam_tr)
+        forward = lgsvl.utils.transform_to_forward(cam_tr)
+        cam_tr.position += up * 5 - forward * 12
+        sim.set_sim_camera(cam_tr)
         cnt += 1
-        sim.run(0.25)
+        sim.run(1)
 
 
 def main(path):
@@ -76,8 +86,7 @@ def main(path):
 
     # initial simulation
     env = Env()
-    sim = lgsvl.Simulator(env.str("LGSVL__SIMULATOR_HOST", lgsvl.wise.SimulatorSettings.simulator_host),
-                          env.int("LGSVL__SIMULATOR_PORT", lgsvl.wise.SimulatorSettings.simulator_port))
+    sim = lgsvl.Simulator("127.0.0.1", 8977)
 
     for i in range(4):
         print("scenario[{}]".format(i))
@@ -85,4 +94,5 @@ def main(path):
 
 
 if __name__ == '__main__':
-    main('D:/Workspace/WeatherPesdraintNpcWithMutation2/GaCheckpointsCrossroads/generation--at-01-01-2022-00-20-18')
+    path = sys.argv[1]
+    main(path)

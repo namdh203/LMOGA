@@ -5,7 +5,7 @@ import copy
 import tools
 import collections
 import pickle
-from Chromosome import Chromosome
+from MutlChromosome import MutlChromosome
 from os import listdir
 from os.path import isfile, join
 from os import walk
@@ -39,7 +39,7 @@ def generateRestart(ck_path, scenarioNum, bounds):
 	dictScenario = {}
 
 	for i in range(scenarioNum):
-		chromosome = Chromosome(bounds, npcSize, len(prevPopPool[0][0].scenario[0]))
+		chromosome = MutlChromosome(bounds, npcSize, len(prevPopPool[0][0].scenario[0]))
 		chromosome.rand_init()
 		newPopCandiate.append(chromosome)
 
@@ -122,8 +122,8 @@ def getSimularityOfScenarioVsPrevPop(scenario, prePopPool):
 if __name__ == '__main__':
     prevPopPool = getAllCheckpoints('GaCheckpoints')
     npcSize = len(prevPopPool[0][0].scenario)
-    chromosome1 = Chromosome([[0, 34], [0, 3]], npcSize, len(prevPopPool[0][0].scenario[0]))
+    chromosome1 = MutlChromosome([[0, 34], [0, 3]], npcSize, len(prevPopPool[0][0].scenario[0]))
     chromosome1.rand_init()
-    chromosome2 = Chromosome([[0, 34], [0, 3]], npcSize, len(prevPopPool[0][0].scenario[0]))
+    chromosome2 = MutlChromosome([[0, 34], [0, 3]], npcSize, len(prevPopPool[0][0].scenario[0]))
     chromosome2.rand_init()
     checkIfRemutataion('GaCheckpoints', chromosome1, chromosome2)

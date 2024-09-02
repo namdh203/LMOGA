@@ -33,7 +33,7 @@ class LgApSimulation:
         # self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO
         self.sim = None
         self.ego = None  # There is only one ego
-        self.initEvPos = lgsvl.Vector(769, 10, -49)
+        self.initEvPos = lgsvl.Vector(769, 10, -40)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
         self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
         self.roadNum = 1
@@ -50,6 +50,7 @@ class LgApSimulation:
         self.maxint = 130
         self.egoFaultDeltaD = 0
         self.isCollision = False
+        self.saveState = {}
 
     def get_speed(self, vehicle):
         vel = vehicle.state.velocity
@@ -77,12 +78,12 @@ class LgApSimulation:
                 egoState.transform.rotation.y = 49
                 egoState.transform.rotation.x = 0
             elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
-                self.initEvPos = lgsvl.Vector(-768.9, 10.2, 224.1)
-                self.endEvPos = lgsvl.Vector(-494.3, 10.2, 294.7)
-                # self.initEvPos = lgsvl.Vector(769, 10, -49)
-                # self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
-                egoState.transform.rotation.y = 81
-                egoState.transform.rotation.x = 0
+                # self.initEvPos = lgsvl.Vector(-768.9, 10.2, 224.1)
+                # self.endEvPos = lgsvl.Vector(-494.3, 10.2, 294.7)
+                self.initEvPos = lgsvl.Vector(533.150024414063, 10, 553.948913574219)
+                self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
+                # egoState.transform.rotation.y = 81
+                # egoState.transform.rotation.x = 0
             elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
                 self.initEvPos = lgsvl.Vector(-40.3, -1.4, -11.8)
                 self.endEvPos = lgsvl.Vector(348.2, -1.4, -64.4)
@@ -101,8 +102,9 @@ class LgApSimulation:
 
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
         forward = lgsvl.utils.transform_to_forward(egoState.transform)
-        egoState.velocity = 3 * forward
-        ego = sim.add_agent("98dd4583-f770-4bfa-bd06-a97821839db9", lgsvl.AgentType.EGO,
+        egoState.velocity = 5 * forward
+        print("first ego velocity", egoState.velocity)
+        ego = sim.add_agent("8e776f67-63d6-4fa3-8587-ad00a0b41034", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
         sim.set_time_of_day((10 + time_offset) % 24, fixed=True)
@@ -248,7 +250,7 @@ class LgApSimulation:
             pred_x = a * egoPath.z * egoPath.z * egoPath.z + b * egoPath.z * egoPath.z + c * egoPath.z + d
             # if pred_x-0.5 <= egoPath.x <= pred_x+0.5:
             if egoPath.x < pred_x or pred_x < egoPath.x:
-                egoSimilarity.append(math.sqrt((router[k].x - egoPath.x) ** 2 + (router[k].z - egoPath.z) ** 2))
+                egoSimilarity.append(math.sqrt((float(router[k][0]) - egoPath.x) ** 2 + (float(router[k][2]) - egoPath.z) ** 2))
             k += 1
 
         if egoSimilarity == []:
@@ -334,14 +336,83 @@ class LgApSimulation:
         else:
             return 'left'
 
+    def save_state(self):
+        sim = self.sim
+        state = {}
+        state['worldEffect'] = {
+            'rain': sim.weather.rain,
+            'fog': sim.weather.fog,
+            'wetness': sim.weather.wetness,
+            'cloudiness': sim.weather.cloudiness,
+            'damage': sim.weather.damage,
+        }
+        
+        for agent in sim.get_agents():
+            agent_state = {
+                'positionX': agent.state.transform.position.x,
+                'positionY': agent.state.transform.position.y,
+                'positionZ': agent.state.transform.position.z,
+                'rotationX': agent.state.transform.rotation.x,
+                'rotationY': agent.state.transform.rotation.y,
+                'rotationZ': agent.state.transform.rotation.z,
+                'velocityX': agent.state.velocity.x,
+                'velocityY': agent.state.velocity.y,
+                'velocityZ': agent.state.velocity.z,
+                'angularVelocityX': agent.state.angular_velocity.x,
+                'angularVelocityY': agent.state.angular_velocity.y,
+                'angularVelocityZ': agent.state.angular_velocity.z
+            }
+            print("agent.uid", agent.uid)
+            state[agent.uid] = agent_state
+        
+        self.saveState = state
+
+    def rollBack(self):
+        if self.saveState != {}:
+            saveState = self.saveState
+            sim = self.sim
+            weather = saveState['worldEffect']
+            sim.weather = lgsvl.WeatherState(rain=weather['rain'], fog=weather['fog'], wetness=weather['wetness'], cloudiness=weather['cloudiness'],
+                                         damage=weather['damage'])
+            sim.set_time_of_day((10 + time_offset) % 24, fixed=True)
+            current_agents = {agent.uid: agent for agent in self.sim.get_agents()}
+            state_agents = saveState.keys()
+
+            for agent_uid in list(current_agents):
+                if agent_uid not in state_agents:
+                    print("this delete work!")
+                    self.sim.remove_agent(current_agents[agent_uid])
+                    
+            for agent_uid, agent_state in saveState.items():
+                if agent_uid in current_agents:
+                    agent = current_agents[agent_uid]
+                    position = lgsvl.Vector(agent_state['positionX'], agent_state['positionY'], agent_state['positionZ'])
+                    rotation = lgsvl.Vector(agent_state['rotationX'], agent_state['rotationY'], agent_state['rotationZ'])
+                    velocity = lgsvl.Vector(agent_state['velocityX'], agent_state['velocityY'], agent_state['velocityZ'])
+                    angular_velocity = lgsvl.Vector(
+                        agent_state['angularVelocityX'], 
+                        agent_state['angularVelocityY'], 
+                        agent_state['angularVelocityZ']
+                    )
+                    
+                    state = lgsvl.AgentState()
+                    state.transform.position = position
+                    state.transform.rotation = rotation
+                    state.velocity = velocity
+                    print("agent uid, velocity", agent_uid, velocity)
+                    state.angular_velocity = angular_velocity
+                    agent.state = state
+
     def runGen(self, scenarioObj, weather):
         """
         parse the chromosome
         """
 
         # initialize simulation
+        self.rollBack()
         sim = self.sim
         ego = self.ego
+
         numOfTimeSlice = len(scenarioObj[0])
         numOfNpc = len(scenarioObj)
         deltaDList = [[self.maxint for i in range(numOfTimeSlice)] for j in
@@ -369,8 +440,11 @@ class LgApSimulation:
         hitTime = numOfNpc
         resultDic = {}
 
+        print("numOfTimeSlice", numOfTimeSlice)
+
         # Execute scenarios based on genes
         for t in range(0, int(numOfTimeSlice)):
+            print("t current", t)
             minNpcSituation = [0 for o in range(numOfNpc)]
             lane_stateList = []
             speedsList = []
@@ -378,8 +452,8 @@ class LgApSimulation:
             i = 0
             for npc in npcList:
                 print("npclist", npcList)
-                print("scenario", scenarioObj)
-                print("scenarioObj[{i}][{t}][0]".format(i=i, t=t), scenarioObj[i][t][0])
+                # print("scenario", scenarioObj)
+                # print("scenarioObj[{i}][{t}][0]".format(i=i, t=t), scenarioObj[i][t][0])
 
                 # Motif Gene
                 if isinstance(scenarioObj[i][t][0], dict):
@@ -501,6 +575,7 @@ class LgApSimulation:
                     # Execute the action of MotifGene
                     if speedsList[h][0] + speedsList[h][1] + speedsList[h][2] + speedsList[h][3] < 8:
                         if ego.state.speed == 0:
+                            print("ego state speed = 0")
                             ego_speed = 10
                         else:
                             ego_speed = ego.state.speed
@@ -540,17 +615,21 @@ class LgApSimulation:
                 position = ego.state.transform.position + 15 * forward
                 signal = sim.get_controllable(position, "signal")
                 print("signal current", signal.current_state)
+
                 # restart when npc lost
-                for j in range(12):
+                for j in range(6):
                     totalDistances = 0
                     for npc in npcList:
                         totalDistances += math.sqrt(
                             (npc.state.transform.position.x - ego.state.transform.position.x) ** 2 +
                             (npc.state.transform.position.z - ego.state.transform.position.z) ** 2)
-
+                    print("(j, totalDistances)", j, totalDistances)
+                    # print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                     if totalDistances > 130 * len(npcList):
                         resultDic['ttc'] = ''
                         resultDic['fault'] = 'npcTooLong'
+                        print("npc too long detected")
+                        print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                         return resultDic
                     k = 0  # k th npc
                     self.egoSpeed.append(ego.state.speed)
@@ -561,6 +640,7 @@ class LgApSimulation:
                                     (self.egoLocation[-1].position.z - self.egoLocation[-36].position.z) ** 2) <= 5:
                             resultDic['ttc'] = ''
                             resultDic['fault'] = ''
+                            print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                             print("ego stop too long...")
                             return resultDic
 
@@ -608,14 +688,15 @@ class LgApSimulation:
                     egoSpeedList.append(self.get_speed(ego))
                     egoPathList.append(ego.state.position)
                     if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
-                            ego.state.position.z - self.endEvPos.z) ** 2) <= 3:
+                            ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
+                        print("Reach Destinaiton!!!")
+                        print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                         resultDic['ttc'] = ''
                         resultDic['fault'] = ''
                         return resultDic
 
                     sim.run(1)
-                    if j == 11:
-                        time.sleep(0.5)
+                    time.sleep(0.3)
 
 
             ####################################
@@ -631,9 +712,10 @@ class LgApSimulation:
 
         # Record scenario
         ttc = self.findFitness(deltaDList, dList, self.isEgoFault, self.isHit, hitTime)
+        print("ttc", ttc)
         resultDic['ttc'] = -ttc
         resultDic['smoothness'] = self.jerk(egoSpeedList)
-        resultDic['pathSimilarity'] = self.findPathSimilarity(egoPathList, localPath)
+        # resultDic['pathSimilarity'] = self.findPathSimilarity(egoPathList, localPath)
         resultDic['MinNpcSituations'] = MinNpcSituations
         resultDic['egoSpeed'] = self.egoSpeed
         resultDic['egoLocation'] = self.egoLocation
@@ -645,7 +727,7 @@ class LgApSimulation:
         if self.isEgoFault:
             resultDic['fault'] = 'ego'
         util.print_debug(" === Finish simulation === ")
-        # util.print_debug(resultDic)
+        util.print_debug(resultDic)
 
         return resultDic
 
@@ -662,7 +744,7 @@ class LgApSimulation:
         controllables = self.sim.get_controllables("signal")
         for c in controllables:
             signal = self.sim.get_controllable(c.transform.position, "signal")
-            control_policy = "trigger=200;green=50;yellow=0;red=0;loop"
+            control_policy = "trigger=200;green=50;yellow=5;red=5;loop"
             signal.control(control_policy)
 
         # Print ego position
@@ -713,31 +795,33 @@ class LgApSimulation:
             for npcLocate in npcPosition:
                 if abs(npc_x - self.initEvPos.x) <= 5:
                     if npcDetail[i][0] == -1 or npcDetail[i][0] == 0:
-                        npc_x -= 5
+                        npc_x -= 10
                     elif npcDetail[i][0] == 1:
-                        npc_x += 5
+                        npc_x += 10
 
                     if abs(npc_z - self.initEvPos.z) <= 5:
                         if npcDetail[i][1] == -1 or npcDetail[i][1] == 0:
-                            npc_z -= 5
+                            npc_z -= 10
                         elif npcDetail[i][1] == 1:
-                            npc_z += 5
+                            npc_z += 10
 
                 if abs(npc_x - npcLocate[0]) <= 5:
                     if npcDetail[i][0] == -1 or npcDetail[i][0] == 0:
-                        npc_x -= 5
+                        npc_x -= 10
                     elif npcDetail[i][0] == 1:
-                        npc_x += 5
+                        npc_x += 10
 
-                    if abs(npc_z - npcLocate[2]) <= 5:
+                    if abs(npc_z - npcLocate[2]) <= 10:
                         if npcDetail[i][1] == -1 or npcDetail[i][1] == 0:
-                            npc_z -= 5
+                            npc_z -= 10
                         elif npcDetail[i][1] == 1:
-                            npc_z += 5
+                            npc_z += 10
             npcPosition.append([npc_x, npc_y, npc_z])
 
         for position in npcPosition:
             self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
+
+        self.save_state()
 
         def on_collision(agent1, agent2, contact):
             """
@@ -753,7 +837,7 @@ class LgApSimulation:
 
             apollo = agent1
             npcVehicle = agent2
-            if agent2.name == lgsvl.wise.DefaultAssets.ego_lincoln2017mkz_apollo6_modular:
+            if agent2.name == "8e776f67-63d6-4fa3-8587-ad00a0b41034":
                 apollo = agent2
                 npcVehicle = agent1
 
@@ -762,6 +846,8 @@ class LgApSimulation:
             if apollo.state.speed <= 0.005:
                 self.isEgoFault = False
                 return
+
+        print("self is collison***", self.isCollision)
 
         ego.on_collision(on_collision)
 
@@ -790,8 +876,10 @@ class LgApSimulation:
         else:
             for i in range(ge.pop_size):
                 print("-------------------scenario: {i}th ---------".format(i=i))
+                print("ge pop size current", len(ge.pop))
                 chromsome = MutlChromosome(ge.bounds, ge.NPC_size, ge.time_size, None)
                 chromsome.rand_init()
+                
                 # result1 = DotMap()
                 util.print_debug("scenario::" + str(chromsome.scenario))
                 result1 = self.runGen(chromsome.scenario, chromsome.weathers)
@@ -801,7 +889,7 @@ class LgApSimulation:
                 chromsome.ttc = result1['ttc']
                 chromsome.MinNpcSituations = result1['MinNpcSituations']
                 chromsome.smoothness = result1['smoothness']
-                chromsome.pathSimilarity = result1['pathSimilarity']
+                # chromsome.pathSimilarity = result1['pathSimilarity']
                 chromsome.egoSpeed = result1['egoSpeed']
                 chromsome.egoLocation = result1['egoLocation']
                 chromsome.npcSpeed = result1['npcSpeed']
@@ -831,10 +919,10 @@ class LgApSimulation:
             ge.take_checkpoint(ge.pop, 'last_gen.obj')
 
         # iteration of scenario
+        print("ge.max_gen", ge.max_gen)
         for i in range(ge.max_gen):
             util.print_debug(" \n\n*** " + str(i) + "th generation ***")
             util.select(" \n\n*** " + str(i) + "th generation ***")
-
             ge.touched_chs = []
             ge.beforePop = []
             for t in range(len(ge.pop)):
@@ -842,6 +930,7 @@ class LgApSimulation:
             ge.cross()
             ge.mutation()
             for eachChs in ge.touched_chs:
+                print("eachChs processing...")
                 res = self.runGen(eachChs.scenario, eachChs.weathers)
                 if res is None or res['ttc'] == 0.0 or res['ttc'] == '':
                     return res
@@ -849,7 +938,7 @@ class LgApSimulation:
                 eachChs.ttc = res['ttc']
                 eachChs.MinNpcSituations = res['MinNpcSituations']
                 eachChs.smoothness = res['smoothness']
-                eachChs.pathSimilarity = res['pathSimilarity']
+                # eachChs.pathSimilarity = res['pathSimilarity']
                 eachChs.egoSpeed = res['egoSpeed']
                 eachChs.egoLocation = res['egoLocation']
                 eachChs.npcSpeed = res['npcSpeed']

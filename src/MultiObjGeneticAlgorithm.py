@@ -74,24 +74,24 @@ class MultiObjGenticAlgorithm:
 
         values1 = []
         values2 = []
-        values3 = []
+        # values3 = []
         for i in range(len(self.pop)):
             values1.append(self.pop[i].ttc)
             values2.append(self.pop[i].smoothness)
-            values3.append(self.pop[i].pathSimilarity)
+            # values3.append(self.pop[i].pathSimilarity)
         maxTtc = max(values1)
         minTtc = min(values1)
         normalizationValue1 = maxTtc - minTtc
         maxSmoothness = max(values2)
         minSmoothness = min(values2)
         normalizationValue2 = maxSmoothness - minSmoothness
-        maxPathSimilarity = max(values3)
-        minPathSimilarity = min(values3)
-        normalizationValue3 = maxPathSimilarity - minPathSimilarity
+        # maxPathSimilarity = max(values3)
+        # minPathSimilarity = min(values3)
+        # normalizationValue3 = maxPathSimilarity - minPathSimilarity
         # print("normalizationValue",normalizationValue)
         sorted1 = self.sort_by_values(front, values1)
         sorted2 = self.sort_by_values(front, values2)
-        sorted3 = self.sort_by_values(front, values3)
+        # sorted3 = self.sort_by_values(front, values3)
 
         distance[0] = sys.maxsize
         distance[len(front) - 1] = sys.maxsize
@@ -100,9 +100,9 @@ class MultiObjGenticAlgorithm:
         for k in range(1, len(front) - 1):
             distance[k] += (self.pop[sorted2[k + 1]].smoothness - self.pop[
                 sorted2[k - 1]].smoothness) / normalizationValue2
-        for k in range(1, len(front) - 1):
-            distance[k] += (self.pop[sorted3[k + 1]].pathSimilarity - self.pop[
-                sorted3[k - 1]].pathSimilarity) / normalizationValue3
+        # for k in range(1, len(front) - 1):
+        #     distance[k] += (self.pop[sorted3[k + 1]].pathSimilarity - self.pop[
+        #         sorted3[k - 1]].pathSimilarity) / normalizationValue3
         return distance
 
     def fast_non_dominated_sort(self):
@@ -254,6 +254,7 @@ class MultiObjGenticAlgorithm:
         while (k < len(self.pop)):
             eachChs = self.pop[k]
             k += 1
+            print("mutation ok?")
             # Check mutation probability
             if self.pm >= random.random():
                 npc_index = random.randint(0, eachChs.NPC_size - 1)

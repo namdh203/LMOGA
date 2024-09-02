@@ -13,13 +13,13 @@ def main():
     GaData.crossoverProb = 0.4  # crossover rate
     GaData.popSize = 4
     GaData.numOfNpc = 3
-    GaData.numOfTimeSlice = 5
-    GaData.maxGen = 8 #600
+    GaData.numOfTimeSlice = 4
+    GaData.maxGen = 600 #600
     isRestart = False
     count = 0
 
     for x in range(0, GaData.maxGen):
-        print("==== This is iteration: {x}th of maxGenaration ====".format(x = x))
+        print("==== This is iteration: {x}th ====".format(x = x))
         if os.path.isfile('result.obj'):
             os.remove("result.obj")
         # Dump genetic algorithm parameters
@@ -38,6 +38,7 @@ def main():
             resultObj = pickle.load(f_f)
             f_f.close()
 
+        print("********* resultObj here ********", resultObj)
         # Restart of npc lost
         if resultObj is None or resultObj['ttc'] == 0.0 or resultObj['ttc'] == '' or resultObj['fault'] == 'npcTooLong':
             if os.path.exists('GaCheckpointsCrossroads/last_gen.obj'):
