@@ -14,7 +14,7 @@ def main():
     GaData.popSize = 4
     GaData.numOfNpc = 3
     GaData.numOfTimeSlice = 4
-    GaData.maxGen = 600 #600
+    GaData.maxGen = 100 #600
     isRestart = False
     count = 0
 

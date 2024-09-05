@@ -80,8 +80,8 @@ class LgApSimulation:
             elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
                 # self.initEvPos = lgsvl.Vector(-768.9, 10.2, 224.1)
                 # self.endEvPos = lgsvl.Vector(-494.3, 10.2, 294.7)
-                self.initEvPos = lgsvl.Vector(533.150024414063, 10, 553.948913574219)
-                self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
+                self.initEvPos = lgsvl.Vector(533.150024414063, 10.2, 553.948913574219)
+                self.endEvPos = lgsvl.Vector(-847.312927246094, 10.2, 176.858657836914)
                 # egoState.transform.rotation.y = 81
                 # egoState.transform.rotation.x = 0
             elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
@@ -102,8 +102,7 @@ class LgApSimulation:
 
         egoState.transform = sim.map_point_on_lane(self.initEvPos)
         forward = lgsvl.utils.transform_to_forward(egoState.transform)
-        egoState.velocity = 5 * forward
-        print("first ego velocity", egoState.velocity)
+        egoState.velocity = 3 * forward
         ego = sim.add_agent("8e776f67-63d6-4fa3-8587-ad00a0b41034", lgsvl.AgentType.EGO,
                             egoState)
         self.ego = ego
@@ -133,7 +132,7 @@ class LgApSimulation:
             # 'Traffic Light',
             'Control'
         ]
-        destination = spawns[0].destinations[0]
+        # destination = spawns[0].destinations[0]
         # dv.disable_apollo()
         # dv.setup_apollo(destination.position.x, destination.position.z, 0, modules)
         # dv.setup_apollo(self.endEvPos.x, self.endEvPos.z, 0, modules)
@@ -382,7 +381,7 @@ class LgApSimulation:
                 if agent_uid not in state_agents:
                     print("this delete work!")
                     self.sim.remove_agent(current_agents[agent_uid])
-                    
+            
             for agent_uid, agent_state in saveState.items():
                 if agent_uid in current_agents:
                     agent = current_agents[agent_uid]
@@ -611,14 +610,20 @@ class LgApSimulation:
                             self.setNpcChangeLane(npc, direction)
                     h += 1
 
-                forward = lgsvl.utils.transform_to_forward(ego.state.transform)
-                position = ego.state.transform.position + 15 * forward
-                signal = sim.get_controllable(position, "signal")
-                print("signal current", signal.current_state)
-
                 # restart when npc lost
                 for j in range(6):
                     totalDistances = 0
+                    forward = lgsvl.utils.transform_to_forward(ego.state.transform)
+                    position = ego.state.transform.position + 15 * forward
+                    signal = sim.get_controllable(position, "signal")
+                    # print("signal current", signal.current_state)
+                    if math.sqrt(
+                            (self.initEvPos.x - ego.state.transform.position.x) ** 2 +
+                            (self.initEvPos.z - ego.state.transform.position.z) ** 2) < 15:
+                        print("accelarate when started!!")
+                        ego.state.velocity = 6 * forward
+                    else:
+                        ego.state.velocity = 3 * forward
                     for npc in npcList:
                         totalDistances += math.sqrt(
                             (npc.state.transform.position.x - ego.state.transform.position.x) ** 2 +
@@ -633,6 +638,7 @@ class LgApSimulation:
                         return resultDic
                     k = 0  # k th npc
                     self.egoSpeed.append(ego.state.speed)
+                    # print("egoSpeed list", self.egoSpeed[-1])
                     self.egoLocation.append(ego.state.transform)
 
                     if (len(self.egoLocation) >= 36) & (signal.current_state == 'green'):
@@ -674,7 +680,7 @@ class LgApSimulation:
                     # restart Apollo when ego offline
                     while not ego.bridge_connected:
                         print("+++++++++++++++++++++++=", ego.bridge_connected)
-                        print("----------------------line", line)
+                        # print("----------------------line", line)
                         time.sleep(5)
                         resultDic['ttc'] = ''
                         resultDic['fault'] = ''
