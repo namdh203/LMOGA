@@ -11,10 +11,10 @@ def main():
     GaData.bounds = [[1, 2], [0, 5], [3, 12], [0, 3], [1, 7], [-2.5, 3], [1, 10], [1, 4]]  # [[speed range], [actions]]
     GaData.mutationProb = 0.4  # mutation rate
     GaData.crossoverProb = 0.4  # crossover rate
-    GaData.popSize = 4
+    GaData.popSize = 2
     GaData.numOfNpc = 3
     GaData.numOfTimeSlice = 2
-    GaData.maxGen = 600 #600
+    GaData.maxGen = 300 #600
     isRestart = False
     count = 0
 
