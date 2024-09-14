@@ -118,23 +118,12 @@ class MultiObjGenticAlgorithm:
             S[p] = []
             n[p] = 0
             for q in range(len(self.pop)):
-                if (self.pop[p].ttc > self.pop[q].ttc and self.pop[p].smoothness >= self.pop[q].smoothness and self.pop[
-                    p].pathSimilarity >= self.pop[q].pathSimilarity) or \
-                        (self.pop[p].smoothness > self.pop[q].smoothness and self.pop[p].ttc >= self.pop[q].ttc and
-                         self.pop[p].pathSimilarity >= self.pop[q].pathSimilarity) or \
-                        (self.pop[p].pathSimilarity > self.pop[q].pathSimilarity and self.pop[p].ttc >= self.pop[
-                            q].ttc and
-                         self.pop[p].smoothness >= self.pop[q].smoothness):
+                if (self.pop[p].ttc > self.pop[q].ttc and self.pop[p].smoothness >= self.pop[q].smoothness) or \
+                        (self.pop[p].smoothness > self.pop[q].smoothness and self.pop[p].ttc >= self.pop[q].ttc):
                     if q not in S[p]:
                         S[p].append(q)
-                elif (self.pop[p].ttc < self.pop[q].ttc and self.pop[p].smoothness <= self.pop[q].smoothness and
-                      self.pop[
-                          p].pathSimilarity <= self.pop[q].pathSimilarity) or \
-                        (self.pop[p].smoothness < self.pop[q].smoothness and self.pop[p].ttc <= self.pop[q].ttc and
-                         self.pop[p].pathSimilarity <= self.pop[q].pathSimilarity) or \
-                        (self.pop[p].pathSimilarity < self.pop[q].pathSimilarity and self.pop[p].ttc <= self.pop[
-                            q].ttc and
-                         self.pop[p].smoothness <= self.pop[q].smoothness):
+                elif (self.pop[p].ttc < self.pop[q].ttc and self.pop[p].smoothness <= self.pop[q].smoothness) or \
+                        (self.pop[p].smoothness < self.pop[q].smoothness and self.pop[p].ttc <= self.pop[q].ttc):
                     n[p] = n[p] + 1
             if n[p] == 0:
                 rank[p] = 0
@@ -204,7 +193,7 @@ class MultiObjGenticAlgorithm:
             ave = 0
             if i >= self.lastRestartGen + 5:
                 for j in range(i - 5, i):
-                    ave += self.bests[j].ttc + self.bests[j].smoothness + self.bests[j].pathSimilarity
+                    ave += self.bests[j].ttc + self.bests[j].smoothness
                 ave /= 5
                 if ave <= best.ttc:
                     self.lastRestarGen = i
@@ -254,7 +243,7 @@ class MultiObjGenticAlgorithm:
         while (k < len(self.pop)):
             eachChs = self.pop[k]
             k += 1
-            print("mutation ok?")
+            # print("mutation ok?")
             # Check mutation probability
             if self.pm >= random.random():
                 npc_index = random.randint(0, eachChs.NPC_size - 1)
@@ -413,7 +402,7 @@ class MultiObjGenticAlgorithm:
                 selectedChromosome.scenario = self.pop[value].scenario
                 selectedChromosome.ttc = self.pop[value].ttc
                 selectedChromosome.smoothness = self.pop[value].smoothness
-                selectedChromosome.pathSimilarity = self.pop[value].pathSimilarity
+                # selectedChromosome.pathSimilarity = self.pop[value].pathSimilarity
                 selectedChromosome.MinNpcSituations = self.pop[value].MinNpcSituations
                 selectedChromosome.npcDetail = self.pop[value].npcDetail
                 selectedChromosome.npcAction = self.pop[value].npcAction

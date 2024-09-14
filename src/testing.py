@@ -1,11 +1,20 @@
 import pickle
 import os
+import sys
 
-if os.path.isfile("AccidentScenarioCrossroads/accident-gen-08-30-2024-07-16-50"):
-    f_f = open("AccidentScenarioCrossroads/accident-gen-08-30-2024-07-16-50", "rb")
+objPath = sys.argv[1]
+
+if os.path.isfile(objPath):
+    f_f = open(objPath, "rb")
     result = pickle.load(f_f)
     f_f.close()
-    print(result.ttc)
+    # print(result)
+    for pop in result:
+        print("ttc, smoothness, pathSimilarity, collision", pop.ttc, pop.smoothness, pop.pathSimilarity, pop.isCollision)
+        # for speed in pop.npcSpeed:
+        #     print(speed)
+        # for action in pop.npcAction:
+        #     print(action)
 
 # if os.path.isfile("trajectory(another try).obj"):
 #     f_f = open("trajectory(another try).obj", "rb")

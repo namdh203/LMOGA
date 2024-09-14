@@ -345,7 +345,7 @@ class LgApSimulation:
             'cloudiness': sim.weather.cloudiness,
             'damage': sim.weather.damage,
         }
-        
+
         for agent in sim.get_agents():
             agent_state = {
                 'positionX': agent.state.transform.position.x,
@@ -363,7 +363,7 @@ class LgApSimulation:
             }
             print("agent.uid", agent.uid)
             state[agent.uid] = agent_state
-        
+
         self.saveState = state
 
     def rollBack(self):
@@ -381,7 +381,7 @@ class LgApSimulation:
                 if agent_uid not in state_agents:
                     print("this delete work!")
                     self.sim.remove_agent(current_agents[agent_uid])
-            
+
             for agent_uid, agent_state in saveState.items():
                 if agent_uid in current_agents:
                     agent = current_agents[agent_uid]
@@ -389,11 +389,11 @@ class LgApSimulation:
                     rotation = lgsvl.Vector(agent_state['rotationX'], agent_state['rotationY'], agent_state['rotationZ'])
                     velocity = lgsvl.Vector(agent_state['velocityX'], agent_state['velocityY'], agent_state['velocityZ'])
                     angular_velocity = lgsvl.Vector(
-                        agent_state['angularVelocityX'], 
-                        agent_state['angularVelocityY'], 
+                        agent_state['angularVelocityX'],
+                        agent_state['angularVelocityY'],
                         agent_state['angularVelocityZ']
                     )
-                    
+
                     state = lgsvl.AgentState()
                     state.transform.position = position
                     state.transform.rotation = rotation
@@ -885,7 +885,7 @@ class LgApSimulation:
                 print("ge pop size current", len(ge.pop))
                 chromsome = MutlChromosome(ge.bounds, ge.NPC_size, ge.time_size, None)
                 chromsome.rand_init()
-                
+
                 # result1 = DotMap()
                 util.print_debug("scenario::" + str(chromsome.scenario))
                 result1 = self.runGen(chromsome.scenario, chromsome.weathers)
@@ -900,7 +900,7 @@ class LgApSimulation:
                 chromsome.egoLocation = result1['egoLocation']
                 chromsome.npcSpeed = result1['npcSpeed']
                 chromsome.npcLocation = result1['npcLocation']
-                # chromsome.isCollision = result1['isCollision']
+                chromsome.isCollision = result1['isCollision']
                 chromsome.npcAction = result1['npcAction']
                 ge.pop.append(chromsome)
 
@@ -949,7 +949,7 @@ class LgApSimulation:
                 eachChs.egoLocation = res['egoLocation']
                 eachChs.npcSpeed = res['npcSpeed']
                 eachChs.npcLocation = res['npcLocation']
-                # eachChs.isCollision = res['isCollision']
+                eachChs.isCollision = res['isCollision']
                 eachChs.npcAction = res['npcAction']
 
                 if self.isCollision:
