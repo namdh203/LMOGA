@@ -35,6 +35,7 @@ class LgApSimulation:
         # self.bridgeLogPath = "/home/kasm_user/apollo/data/log/cyber_bridge.INFO
         self.sim = None
         self.ego = None  # There is only one ego
+        self.MinTtc = 100
         self.initEvPos = lgsvl.Vector(769, 10, -40)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
         self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
@@ -377,7 +378,7 @@ class LgApSimulation:
             if os.stat(save_path).st_size > 0:
                 epsilon = random.random()
                 print("epsilon:", epsilon)
-                if epsilon > 0.2:
+                if epsilon >= 0.3:
                     with open(save_path, 'r') as infile:
                         vehicle_states = json.load(infile)
                         saveState = vehicle_states
@@ -390,10 +391,10 @@ class LgApSimulation:
             current_agents = {agent.uid: agent for agent in self.sim.get_agents()}
             state_agents = saveState.keys()
 
-            for agent_uid in list(current_agents):
-                if agent_uid not in state_agents:
-                    print("this delete work!")
-                    self.sim.remove_agent(current_agents[agent_uid])
+            # for agent_uid in list(current_agents):
+            #     if agent_uid not in state_agents:
+            #         print("this delete work!")
+            #         self.sim.remove_agent(current_agents[agent_uid])
 
             for agent_uid, agent_state in saveState.items():
                 if agent_uid in current_agents:
@@ -732,7 +733,12 @@ class LgApSimulation:
 
         # Record scenario
         ttc = self.findFitness(deltaDList, dList, self.isEgoFault, self.isHit, hitTime)
-        print("ttc", ttc)
+        print("ttc, MinTtc", ttc, self.MinTtc)
+        if ttc < self.MinTtc:
+            self.MinTtc = ttc
+            with open("vehicle_states.json", 'w') as outfile:
+                json.dump(self.saveState, outfile)
+
         resultDic['ttc'] = -ttc
         resultDic['smoothness'] = self.jerk(egoSpeedList)
         # resultDic['pathSimilarity'] = self.findPathSimilarity(egoPathList, localPath)
@@ -898,9 +904,6 @@ class LgApSimulation:
                 if result1 is None or result1['ttc'] == 0.0 or result1['ttc'] == '':
                     return result1
 
-                if result1['ttc'] >= -2:
-                    with open("vehicle_states.json", 'r') as outfile:
-                        json.dump(self.save_state, outfile)
 
                 chromsome.ttc = result1['ttc']
                 chromsome.MinNpcSituations = result1['MinNpcSituations']
