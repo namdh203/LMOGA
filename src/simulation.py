@@ -17,6 +17,8 @@ from lgsvl.dreamview import CoordType
 
 from MutlChromosome import MutlChromosome
 
+import json
+
 APOLLO_HOST = "112.137.129.158"  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 9988
@@ -90,13 +92,13 @@ class LgApSimulation:
                 egoState.transform.rotation.y = 195
                 egoState.transform.rotation.x = 360
         elif self.roadNum == 2:
-            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8": 
+            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":
                 self.initEvPos = lgsvl.Vector(-62.7, 10.2, -110.2)
                 self.endEvPos = lgsvl.Vector(-208.2, 10.2, -181.6)
                 egoState.transform.rotation.y = 224
                 egoState.transform.rotation.x = 0
         elif self.roadNum == 3:
-            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8": 
+            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":
                 self.initEvPos = lgsvl.Vector(-62.7, 10.2, -110.2)
                 self.endEvPos = lgsvl.Vector(-208.2, 10.2, -181.6)
                 egoState.transform.rotation.y = 224
@@ -368,9 +370,18 @@ class LgApSimulation:
 
         self.saveState = state
 
-    def rollBack(self):
+    def rollBack(self, save_path="vehicle_states.json"):
         if self.saveState != {}:
             saveState = self.saveState
+
+            if os.stat(save_path).st_size > 0:
+                epsilon = random.random()
+                print("epsilon:", epsilon)
+                if epsilon > 0.2:
+                    with open(save_path, 'r') as infile:
+                        vehicle_states = json.load(infile)
+                        saveState = vehicle_states
+
             sim = self.sim
             weather = saveState['worldEffect']
             sim.weather = lgsvl.WeatherState(rain=weather['rain'], fog=weather['fog'], wetness=weather['wetness'], cloudiness=weather['cloudiness'],
@@ -887,10 +898,10 @@ class LgApSimulation:
                 if result1 is None or result1['ttc'] == 0.0 or result1['ttc'] == '':
                     return result1
 
-                if result1['ttc'] >= -1:
-                    for position in npcPosition:
-                        util.save_npc_position(position)
-                    
+                if result1['ttc'] >= -2:
+                    with open("vehicle_states.json", 'r') as outfile:
+                        json.dump(self.save_state, outfile)
+
                 chromsome.ttc = result1['ttc']
                 chromsome.MinNpcSituations = result1['MinNpcSituations']
                 chromsome.smoothness = result1['smoothness']

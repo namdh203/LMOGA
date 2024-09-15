@@ -3,15 +3,13 @@ import os
 import pickle
 from dotmap import DotMap
 
-sys.path.append('/home/kasm_user/PycharmProjects/reduceRestart/')
-
 
 def main():
     GaData = DotMap()
     GaData.bounds = [[1, 2], [0, 5], [3, 12], [0, 3], [1, 7], [-2.5, 3], [1, 10], [1, 4]]  # [[speed range], [actions]]
     GaData.mutationProb = 0.4  # mutation rate
     GaData.crossoverProb = 0.4  # crossover rate
-    GaData.popSize = 2
+    GaData.popSize = 4
     GaData.numOfNpc = 3
     GaData.numOfTimeSlice = 2
     GaData.maxGen = 300 #600
