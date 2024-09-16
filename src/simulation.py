@@ -435,7 +435,7 @@ class LgApSimulation:
                     state.angular_velocity = angular_velocity
                     agent.state = state
 
-    def runGen(self, scenarioObj, weather):
+    def runGen(self, scenarioObj, weather, retry = 3):
         """
         parse the chromosome
         """
@@ -646,8 +646,8 @@ class LgApSimulation:
                 for j in range(2):
                     totalDistances = 0
                     forward = lgsvl.utils.transform_to_forward(ego.state.transform)
-                    position = ego.state.transform.position + 15 * forward
-                    signal = sim.get_controllable(position, "signal")
+                    # position = ego.state.transform.position + 15 * forward
+                    # signal = sim.get_controllable(position, "signal")
                     # print("signal current", signal.current_state)
                     if math.sqrt(
                             (self.initEvPos.x - ego.state.transform.position.x) ** 2 +
@@ -675,13 +675,16 @@ class LgApSimulation:
                     self.egoLocation.append(ego.state.transform)
 
                     if len(self.egoLocation) >= 24:
-                        if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[-24].position.x) ** 2 +
-                                    (self.egoLocation[-1].position.z - self.egoLocation[-24].position.z) ** 2) <= 3:
-                            resultDic['ttc'] = ''
-                            resultDic['fault'] = ''
+                        if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[0].position.x) ** 2 +
+                                    (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 50:
                             print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                             print("ego stop too long...")
-                            return resultDic
+                            if retry > 0:
+                                return self.runGen(scenarioObj, weather, retry - 1)
+                            else:
+                                resultDic['ttc'] = ''
+                                resultDic['fault'] = ''
+                                return resultDic
 
                     for npc in npcList:
                         self.npcSpeed[k].append(npc.state.velocity)
@@ -726,17 +729,18 @@ class LgApSimulation:
 
                     egoSpeedList.append(self.get_speed(ego))
                     egoPathList.append(ego.state.position)
-                    if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
-                            ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
-                        print("Reach Destinaiton!!!")
-                        print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                        resultDic['ttc'] = ''
-                        resultDic['fault'] = ''
-                        return resultDic
+                    # if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
+                    #         ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
+                    #     print("Reach Destinaiton!!!")
+                    #     print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
+                    #     resultDic['ttc'] = ''
+                    #     resultDic['fault'] = ''
+                    #     return resultDic
 
                     sim.run(1)
                     time.sleep(0.3)
 
+            time.sleep(2)
 
             ####################################
             # kth npc
