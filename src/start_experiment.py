@@ -11,7 +11,7 @@ def main():
     GaData.crossoverProb = 0.4  # crossover rate
     GaData.popSize = 4
     GaData.numOfNpc = 3
-    GaData.numOfTimeSlice = 2
+    GaData.numOfTimeSlice = 7
     GaData.maxGen = 300 #600
     isRestart = False
     count = 0

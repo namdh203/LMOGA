@@ -10,7 +10,7 @@ if os.path.isfile(objPath):
     f_f.close()
     # print(result)
     for pop in result:
-        print("ttc, smoothness, pathSimilarity, collision", pop.ttc, pop.smoothness, pop.pathSimilarity, pop.isCollision)
+        print("ttc, smoothness, collision", pop.ttc, pop.smoothness, pop.isCollision)
         # for speed in pop.npcSpeed:
         #     print(speed)
         # for action in pop.npcAction:
