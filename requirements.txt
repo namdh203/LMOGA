@@ -31,9 +31,6 @@ future==0.18.2
 gast==0.3.3
 geographiclib==1.50
 geopy==2.1.0
-google-auth==1.24.0
-google-auth-oauthlib==0.4.2
-google-pasta==0.2.0
 greenlet==1.1.2
 grpcio==1.32.0
 gym==0.18.0
@@ -90,7 +87,6 @@ rsa==4.6
 ruamel.yaml==0.16.13
 ruamel.yaml.clib==0.2.2
 scenic==2.1.0b1
-selenium==3.141.0
 Shapely==1.7.1
 singledispatch==3.4.0.3
 six==1.15.0

@@ -19,6 +19,13 @@ from MutlChromosome import MutlChromosome
 
 import json
 
+# 70.55.143.61:41010 -> 22/tcp
+# 70.55.143.61:41204 -> 5900/tcp
+# 70.55.143.61:41024 -> 5901/tcp
+# 70.55.143.61:41205 -> 8888/tcp
+# 70.55.143.61:41374 -> 8966/tcp
+# 70.55.143.61:41218 -> 9090/tcp
+
 APOLLO_HOST = "112.137.129.158"  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 9988
@@ -643,7 +650,7 @@ class LgApSimulation:
                     h += 1
 
                 # restart when npc lost
-                for j in range(2):
+                for j in range(6):
                     totalDistances = 0
                     forward = lgsvl.utils.transform_to_forward(ego.state.transform)
                     # position = ego.state.transform.position + 15 * forward
@@ -676,7 +683,7 @@ class LgApSimulation:
 
                     if len(self.egoLocation) >= 24:
                         if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[0].position.x) ** 2 +
-                                    (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 50:
+                                    (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 20:
                             print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                             print("ego stop too long...")
                             if retry > 0:
@@ -737,10 +744,8 @@ class LgApSimulation:
                     #     resultDic['fault'] = ''
                     #     return resultDic
 
-                    sim.run(1)
-                    time.sleep(0.3)
-
-            time.sleep(2)
+                    sim.run(0.5)
+                    time.sleep(0.2)
 
             ####################################
             # kth npc
@@ -983,10 +988,13 @@ class LgApSimulation:
             util.select(" \n\n*** " + str(i) + "th generation ***")
             ge.touched_chs = []
             ge.beforePop = []
+            ge.pop_size = len(ge.pop)
             for t in range(len(ge.pop)):
                 ge.beforePop.append(copy.deepcopy(ge.pop[t]))
             ge.cross()
+            print("-----cross done----")
             ge.mutation()
+            print("-----mutation done----")
             for eachChs in ge.touched_chs:
                 print("eachChs processing...")
                 res = self.runGen(eachChs.scenario, eachChs.weathers)
