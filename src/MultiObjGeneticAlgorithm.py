@@ -243,12 +243,12 @@ class MultiObjGenticAlgorithm:
         while (k < len(self.pop)):
             eachChs = self.pop[k]
             k += 1
+            # print("mutation ok?")
             # Check mutation probability
             if self.pm >= random.random():
-                print("mutation ok?, popnum", k)
                 npc_index = random.randint(0, eachChs.NPC_size - 1)
                 time_index = random.randint(0, eachChs.time_size - 1)
-                print("npc index, time index", npc_index, time_index)
+
                 # Record which chromosomes have been touched
                 self.touched_chs.append(eachChs)
                 actionIndex = random.randint(0, 2)
@@ -345,9 +345,7 @@ class MultiObjGenticAlgorithm:
         Implementation of random crossover
         """
         flag = []
-        print("len pop", int(len(self.pop)))
         for k in range(int(len(self.pop) / 2.0)):
-            print("k cross", k)
             # Check crossover probability
             if self.pc > random.random():
                 # randomly select 2 chromosomes(scenarios) in pops
@@ -356,7 +354,7 @@ class MultiObjGenticAlgorithm:
                 while i == j or (i in flag or j in flag):
                     i = random.randint(0, self.pop_size - 1)
                     j = random.randint(0, self.pop_size - 1)
-                print("cross ok", i, j)
+
                 flag.append(i)
                 flag.append(j)
                 pop_i = self.pop[i]

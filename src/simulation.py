@@ -19,13 +19,6 @@ from MutlChromosome import MutlChromosome
 
 import json
 
-# 70.55.143.61:41010 -> 22/tcp
-# 70.55.143.61:41204 -> 5900/tcp
-# 70.55.143.61:41024 -> 5901/tcp
-# 70.55.143.61:41205 -> 8888/tcp
-# 70.55.143.61:41374 -> 8966/tcp
-# 70.55.143.61:41218 -> 9090/tcp
-
 APOLLO_HOST = "112.137.129.158"  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 9988
@@ -95,26 +88,16 @@ class LgApSimulation:
                 egoState.transform.rotation.y = 81
                 egoState.transform.rotation.x = 0
             elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
-                self.initEvPos = lgsvl.Vector(352.4, -7.6, -22.6)
+                self.initEvPos = lgsvl.Vector(-352.4, -7.6, -22.6)
                 self.endEvPos = lgsvl.Vector(-16.6, -1.9, -49.3)
                 egoState.transform.rotation.y = 195
                 egoState.transform.rotation.x = 360
         elif self.roadNum == 2:
-            if self.mapName == "bd77ac3b-fbc3-41c3-a806-25915c777022":      #tartu
-                self.initEvPos = lgsvl.Vector(-76.0, 34.3, 325.3)
-                self.endEvPos = lgsvl.Vector(93.8, 34.5, 382.2)
-                egoState.transform.rotation.y = 155
-                egoState.transform.rotation.x = 359
-            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":      #sanfrancisco
+            if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":
                 self.initEvPos = lgsvl.Vector(-62.7, 10.2, -110.2)
                 self.endEvPos = lgsvl.Vector(-208.2, 10.2, -181.6)
                 egoState.transform.rotation.y = 224
                 egoState.transform.rotation.x = 0
-            elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
-                self.initEvPos = lgsvl.Vector(-40.3, -1.4, -11.8)
-                self.endEvPos = lgsvl.Vector(348.2, -7.5, -64.4)
-                egoState.transform.rotation.y = 105
-                egoState.transform.rotation.x = 1
         elif self.roadNum == 3:
             if self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":
                 self.initEvPos = lgsvl.Vector(-62.7, 10.2, -110.2)
@@ -401,9 +384,9 @@ class LgApSimulation:
                     with open(save_path, 'r') as infile:
                         vehicle_states = json.load(infile)
                         saveState = vehicle_states
-                    self.chooseStateJson = True
+                    self.chooseStateJson = True 
                 else:
-                    self.chooseStateJson = False
+                    self.chooseStateJson = False 
 
             sim = self.sim
             weather = saveState['worldEffect']
@@ -442,7 +425,7 @@ class LgApSimulation:
                     state.angular_velocity = angular_velocity
                     agent.state = state
 
-    def runGen(self, scenarioObj, weather, retry = 3):
+    def runGen(self, scenarioObj, weather):
         """
         parse the chromosome
         """
@@ -650,11 +633,11 @@ class LgApSimulation:
                     h += 1
 
                 # restart when npc lost
-                for j in range(6):
+                for j in range(2):
                     totalDistances = 0
                     forward = lgsvl.utils.transform_to_forward(ego.state.transform)
-                    # position = ego.state.transform.position + 15 * forward
-                    # signal = sim.get_controllable(position, "signal")
+                    position = ego.state.transform.position + 15 * forward
+                    signal = sim.get_controllable(position, "signal")
                     # print("signal current", signal.current_state)
                     if math.sqrt(
                             (self.initEvPos.x - ego.state.transform.position.x) ** 2 +
@@ -682,16 +665,13 @@ class LgApSimulation:
                     self.egoLocation.append(ego.state.transform)
 
                     if len(self.egoLocation) >= 24:
-                        if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[0].position.x) ** 2 +
-                                    (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 20:
+                        if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[-24].position.x) ** 2 +
+                                    (self.egoLocation[-1].position.z - self.egoLocation[-24].position.z) ** 2) <= 3:
+                            resultDic['ttc'] = ''
+                            resultDic['fault'] = ''
                             print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                             print("ego stop too long...")
-                            if retry > 0:
-                                return self.runGen(scenarioObj, weather, retry - 1)
-                            else:
-                                resultDic['ttc'] = ''
-                                resultDic['fault'] = ''
-                                return resultDic
+                            return resultDic
 
                     for npc in npcList:
                         self.npcSpeed[k].append(npc.state.velocity)
@@ -736,16 +716,17 @@ class LgApSimulation:
 
                     egoSpeedList.append(self.get_speed(ego))
                     egoPathList.append(ego.state.position)
-                    # if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
-                    #         ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
-                    #     print("Reach Destinaiton!!!")
-                    #     print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    #     resultDic['ttc'] = ''
-                    #     resultDic['fault'] = ''
-                    #     return resultDic
+                    if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
+                            ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
+                        print("Reach Destinaiton!!!")
+                        print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
+                        resultDic['ttc'] = ''
+                        resultDic['fault'] = ''
+                        return resultDic
 
-                    sim.run(0.5)
-                    time.sleep(0.2)
+                    sim.run(1)
+                    time.sleep(0.3)
+
 
             ####################################
             # kth npc
@@ -766,7 +747,7 @@ class LgApSimulation:
             with open("vehicle_states.json", 'w') as outfile:
                 self.saveState['ttc'] = ttc
                 json.dump(self.saveState, outfile)
-        else:
+        else: 
             with open("vehicle_states.json", 'r') as infile:
                 vehicle_states = json.load(infile)
                 print("json ttc", vehicle_states['ttc'])
@@ -988,13 +969,10 @@ class LgApSimulation:
             util.select(" \n\n*** " + str(i) + "th generation ***")
             ge.touched_chs = []
             ge.beforePop = []
-            ge.pop_size = len(ge.pop)
             for t in range(len(ge.pop)):
                 ge.beforePop.append(copy.deepcopy(ge.pop[t]))
             ge.cross()
-            print("-----cross done----")
             ge.mutation()
-            print("-----mutation done----")
             for eachChs in ge.touched_chs:
                 print("eachChs processing...")
                 res = self.runGen(eachChs.scenario, eachChs.weathers)
