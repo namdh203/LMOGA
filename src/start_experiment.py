@@ -7,16 +7,16 @@ from dotmap import DotMap
 def main():
     GaData = DotMap()
     GaData.bounds = [[1, 2], [0, 5], [3, 12], [0, 3], [1, 7], [-2.5, 3], [1, 10], [1, 4]]  # [[speed range], [actions]]
-    GaData.mutationProb = 0.4  # mutation rate
-    GaData.crossoverProb = 0.4  # crossover rate
+    GaData.mutationProb = 0.5  # mutation rate
+    GaData.crossoverProb = 0.5  # crossover rate
     GaData.popSize = 4
     GaData.numOfNpc = 3
-    GaData.numOfTimeSlice = 7
+    GaData.numOfTimeSlice = 4
     GaData.maxGen = 15 #600
     isRestart = False
     count = 0
 
-    for x in range(0, GaData.maxGen):
+    for x in range(0, GaData.maxGen * 2):
         print("==== This is iteration: {x}th ====".format(x = x))
         if os.path.isfile('result.obj'):
             os.remove("result.obj")
