@@ -37,7 +37,7 @@ class LgApSimulation:
         self.ego = None  # There is only one ego
         self.initEvPos = lgsvl.Vector(769, 10, -40)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
-        self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
+        self.mapName = "bd77ac3b-fbc3-41c3-a806-25915c777022"
         self.roadNum = 2
         self.npcList = []  # The list contains all the npc added
         self.pedetrianList = []
@@ -929,7 +929,8 @@ class LgApSimulation:
                 ge.max_gen -= alIterations
         # after restart
         else:
-            for i in range(ge.pop_size):
+            i = 0
+            while i < ge.pop_size:
                 print("-------------------scenario: {i}th ---------".format(i=i))
                 print("ge pop size current", len(ge.pop))
                 chromsome = MutlChromosome(ge.bounds, ge.NPC_size, ge.time_size, None)
@@ -939,8 +940,8 @@ class LgApSimulation:
                 util.print_debug("scenario::" + str(chromsome.scenario))
                 result1 = self.runGen(chromsome.scenario, chromsome.weathers)
                 if result1 is None or result1['ttc'] == 0.0 or result1['ttc'] == '':
-                    return result1
-
+                    continue
+                i += 1
 
                 chromsome.ttc = result1['ttc']
                 chromsome.MinNpcSituations = result1['MinNpcSituations']
@@ -994,7 +995,7 @@ class LgApSimulation:
                 print("eachChs processing...", indexChs, len(ge.touched_chs))
                 res = self.runGen(eachChs.scenario, eachChs.weathers)
                 if res is None or res['ttc'] == 0.0 or res['ttc'] == '':
-                    return res
+                    continue
 
                 eachChs.ttc = res['ttc']
                 eachChs.MinNpcSituations = res['MinNpcSituations']
