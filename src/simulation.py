@@ -19,10 +19,18 @@ from MutlChromosome import MutlChromosome
 
 import json
 
-APOLLO_HOST = "112.137.129.161"  # or 'localhost'
+# 70.31.197.180:41343 -> 22/tcp
+# 70.31.197.180:41175 -> 5900/tcp
+# 70.31.197.180:41196 -> 5901/tcp
+# 70.31.197.180:41212 -> 6666/tcp
+# 70.31.197.180:41352 -> 8888/tcp
+# 70.31.197.180:41069 -> 8966/tcp
+# 70.31.197.180:41052 -> 9090/tcp
+
+APOLLO_HOST = "70.31.197.180"  # or 'localhost'
 PORT = 8977
-DREAMVIEW_PORT = 9988
-BRIDGE_PORT = 9090
+DREAMVIEW_PORT = 41352
+BRIDGE_PORT = 41052
 time_offset = 9
 
 class LgApSimulation:
@@ -37,6 +45,7 @@ class LgApSimulation:
         self.ego = None  # There is only one ego
         self.initEvPos = lgsvl.Vector(769, 10, -40)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
+        # self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
         self.mapName = "bd77ac3b-fbc3-41c3-a806-25915c777022"
         self.roadNum = 2
         self.npcList = []  # The list contains all the npc added
@@ -388,9 +397,9 @@ class LgApSimulation:
             saveState = self.saveState
 
             if os.stat(save_path).st_size > 0:
-                epsilon = random.random()
+                epsilon = 0
                 print("epsilon:", epsilon)
-                if epsilon >= 0.4:
+                if random.random() <= epsilon:
                     with open(save_path, 'r') as infile:
                         vehicle_states = json.load(infile)
                         saveState = vehicle_states
@@ -435,7 +444,7 @@ class LgApSimulation:
                     state.angular_velocity = angular_velocity
                     agent.state = state
 
-    def runGen(self, scenarioObj, weather, retry = 3):
+    def runGen(self, scenarioObj, weather):
         """
         parse the chromosome
         """
@@ -656,14 +665,15 @@ class LgApSimulation:
                         ego.state.velocity = 6 * forward
                     else:
                         ego.state.velocity = 3 * forward
+                    minDistances = 999
                     for npc in npcList:
-                        totalDistances += math.sqrt(
+                        minDistances = min(minDistances, math.sqrt(
                             (npc.state.transform.position.x - ego.state.transform.position.x) ** 2 +
-                            (npc.state.transform.position.z - ego.state.transform.position.z) ** 2)
+                            (npc.state.transform.position.z - ego.state.transform.position.z) ** 2))
                         # print("npc postion", npc.state.transform.position.x, npc.state.transform.position.z)
-                    print("(j, totalDistances)", j, totalDistances)
+                    print("(j, minDistances)", j, minDistances)
                     # print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    if totalDistances > 130 * len(npcList):
+                    if minDistances > 130:
                         resultDic['ttc'] = ''
                         resultDic['fault'] = 'npcTooLong'
                         print("npc too long detected")
@@ -674,17 +684,14 @@ class LgApSimulation:
                     # print("egoSpeed list", self.egoSpeed[-1])
                     self.egoLocation.append(ego.state.transform)
 
-                    if len(self.egoLocation) >= 24:
+                    if len(self.egoLocation) >= 36:
                         if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[0].position.x) ** 2 +
                                     (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 20:
                             print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
                             print("ego stop too long...")
-                            if retry > 0:
-                                return self.runGen(scenarioObj, weather, retry - 1)
-                            else:
-                                resultDic['ttc'] = ''
-                                resultDic['fault'] = ''
-                                return resultDic
+                            resultDic['ttc'] = ''
+                            resultDic['fault'] = ''
+                            return resultDic
 
                     for npc in npcList:
                         self.npcSpeed[k].append(npc.state.velocity)
@@ -738,8 +745,8 @@ class LgApSimulation:
                     #     return resultDic
 
                     sim.run(0.5)
-                    time.sleep(0.2)
-                    # 4 * 0.5 * 6 * 4
+                    time.sleep(0.1)
+                    # 4 * 0.25 * 12 * 4
             ####################################
             # kth npc
             k = 0
@@ -804,7 +811,7 @@ class LgApSimulation:
         controllables = self.sim.get_controllables("signal")
         for c in controllables:
             signal = self.sim.get_controllable(c.transform.position, "signal")
-            control_policy = "trigger=200;green=50;yellow=5;red=5;loop"
+            control_policy = "trigger=200;green=50;yellow=0;red=0;loop"
             signal.control(control_policy)
 
         # Print ego position
@@ -830,8 +837,8 @@ class LgApSimulation:
                     npc_z -= random.uniform(7.5, 15)
                 elif npcDetail[i][1] == 1:
                     npc_z += random.uniform(7.5, 15)
-                else:
-                    npc_z += random.uniform(7.5, 15)
+                # else:
+                #     npc_z += random.uniform(7.5, 15)
             elif npcDetail[i][0] == 0:
                 if npcDetail[i][1] == -1:
                     npc_z -= random.uniform(7.5, 15)
@@ -845,8 +852,8 @@ class LgApSimulation:
                     npc_z -= random.uniform(7.5, 15)
                 elif npcDetail[i][1] == 1:
                     npc_z += random.uniform(7.5, 15)
-                else:
-                    npc_z += random.uniform(7.5, 15)
+                # else:
+                #     npc_z += random.uniform(7.5, 15)
 
             for npcLocate in npcPosition:
                 if abs(npc_x - ego.state.position.x) <= 1.5:
@@ -862,9 +869,9 @@ class LgApSimulation:
 
                 if abs(npc_x - npcLocate[0]) <= 6:
                     if npcDetail[i][0] == -1:
-                        npc_x -= 6
+                        npc_x -= 8
                     elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-                        npc_x += 6
+                        npc_x += 8
 
                     if abs(npc_z - npcLocate[2]) <= 5:
                         if npcDetail[i][1] == -1:
@@ -939,6 +946,7 @@ class LgApSimulation:
                 # result1 = DotMap()
                 util.print_debug("scenario::" + str(chromsome.scenario))
                 result1 = self.runGen(chromsome.scenario, chromsome.weathers)
+                print(result1['ttc'], result1['fault'])
                 if result1 is None or result1['ttc'] == 0.0 or result1['ttc'] == '':
                     continue
                 i += 1

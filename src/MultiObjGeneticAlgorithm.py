@@ -258,7 +258,7 @@ class MultiObjGenticAlgorithm:
                 if not eachChs.MinNpcSituations:
                     v = []
                     a = []
-                    for k in range(4):
+                    for ik in range(4):
                         v1 = random.uniform(self.bounds[2][0], self.bounds[2][1])  # Init velocity
                         a1 = random.randrange(self.bounds[3][0], self.bounds[3][1])  # Init action
                         v.append(copy.deepcopy(v1))
@@ -311,7 +311,7 @@ class MultiObjGenticAlgorithm:
                     else:
                         v = []
                         a = []
-                        for k in range(4):
+                        for ik in range(4):
                             v1 = random.uniform(self.bounds[2][0], self.bounds[2][1])  # Init velocity
                             a1 = random.randrange(self.bounds[3][0], self.bounds[3][1])  # Init action
                             v.append(copy.deepcopy(v1))
