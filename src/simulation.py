@@ -27,10 +27,10 @@ import json
 # 70.31.197.180:41069 -> 8966/tcp
 # 70.31.197.180:41052 -> 9090/tcp
 
-APOLLO_HOST = "70.31.197.180"  # or 'localhost'
+APOLLO_HOST = "112.137.129.161"  # or 'localhost'
 PORT = 8977
-DREAMVIEW_PORT = 41352
-BRIDGE_PORT = 41052
+DREAMVIEW_PORT = 9988
+BRIDGE_PORT = 9090
 time_offset = 9
 
 class LgApSimulation:
@@ -47,7 +47,7 @@ class LgApSimulation:
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
         # self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
         self.mapName = "bd77ac3b-fbc3-41c3-a806-25915c777022"
-        self.roadNum = 2
+        self.roadNum = 1
         self.npcList = []  # The list contains all the npc added
         self.pedetrianList = []
         self.egoSpeed = []
@@ -69,17 +69,21 @@ class LgApSimulation:
         return math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
 
     def initSimulator(self):
+        print("init Simulator")
         sim = lgsvl.Simulator(self.SIMULATOR_HOST, self.SIMULATOR_PORT)
         self.sim = sim
 
     def loadMap(self):
+        print("load Map")
         sim = self.sim
+        print(sim.current_scene)
         if sim.current_scene == self.mapName:
             sim.reset()
         else:
             sim.load(self.mapName)
 
     def initEV(self):
+        print("init EV")
         sim = self.sim
         egoState = lgsvl.AgentState()
         spawn = sim.get_spawn()
@@ -131,6 +135,7 @@ class LgApSimulation:
         sim.set_time_of_day((10 + time_offset) % 24, fixed=True)
 
     def connectEvToApollo(self):
+        print("connect to apollo")
         ego = self.ego
         ego.connect_bridge(self.BRIDGE_HOST, self.BRIDGE_PORT)
         while not ego.bridge_connected:
@@ -157,7 +162,7 @@ class LgApSimulation:
         time.sleep(5)
 
     def restartLGSVL(self):
-        self.initSimulator()
+        # self.initSimulator()
         self.loadMap()
         self.initEV()
         self.connectEvToApollo()
@@ -362,67 +367,93 @@ class LgApSimulation:
         ego = self.ego
         npcPosition = []
         npcDetail = []
-        for npcs in range(numOfNpc):
-            row = random.randint(-1, 1)
-            col = random.randint(-1, 1)
-            npcDetail.append([row, col])
+        def is_valid_pos(pos_x, pos_y, pos_z):
+            # print("dist", math.sqrt((pos_x - ego.state.position.x) ** 2 + (pos_z - ego.state.position.z) ** 2))
+            if math.sqrt((pos_x - ego.state.position.x) ** 2 + (pos_z - ego.state.position.z) ** 2) < 20:
+                return False
+            for pos in npcPosition:
+                if math.sqrt((pos_x - pos[0]) ** 2 + (pos_z - pos[2]) ** 2) < 20:
+                    return False
+            return True
 
-        for i in range(len(npcDetail)):
-            npc_x = ego.state.position.x
-            npc_y = ego.state.position.y
-            npc_z = ego.state.position.z
-            if npcDetail[i][0] == -1:
-                npc_x -= 6
+        for i in range(numOfNpc):
+            while True:
+                # print("random choice position npc...")
+                row = random.choice([-1, 0, 1]) * 10
+                col = random.choice([-1, 1]) * random.uniform(15, 25)
+                npc_x = ego.state.position.x + row
+                npc_y = ego.state.position.y
+                npc_z = ego.state.position.z + col
+                if is_valid_pos(npc_x, npc_y, npc_z):
+                    npcPosition.append([npc_x, npc_y, npc_z])
+                    break
 
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                # else:
-                #     npc_z += random.uniform(7.5, 15)
-            elif npcDetail[i][0] == 0:
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                else:
-                    npc_z += random.uniform(7.5, 15)
-            elif npcDetail[i][0] == 1:
-                npc_x += 6
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                # else:
-                #     npc_z += random.uniform(7.5, 15)
-
-            for npcLocate in npcPosition:
-                if abs(npc_x - ego.state.position.x) <= 1.5:
-                    if npcDetail[i][0] == -1:
-                        npc_x -= 6
-                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-                        npc_x += 6
-                    if abs(npc_z - ego.state.position.z) <= 7.5:
-                        if npcDetail[i][1] == -1:
-                            npc_z -= 7.5
-                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-                            npc_z += 7.5
-
-                if abs(npc_x - npcLocate[0]) <= 6:
-                    if npcDetail[i][0] == -1:
-                        npc_x -= 8
-                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-                        npc_x += 8
-
-                    if abs(npc_z - npcLocate[2]) <= 5:
-                        if npcDetail[i][1] == -1:
-                            npc_z -= 7.5
-                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-                            npc_z += 7.5
-            npcPosition.append([npc_x, npc_y, npc_z])
-
+        self.npcList = []
         for position in npcPosition:
             self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
+
+        # for npcs in range(numOfNpc):
+        #     row = random.randint(-1, 1)
+        #     col = random.randint(-1, 1)
+        #     npcDetail.append([row, col])
+
+        # for i in range(len(npcDetail)):
+        #     npc_x = ego.state.position.x
+        #     npc_y = ego.state.position.y
+        #     npc_z = ego.state.position.z
+        #     if npcDetail[i][0] == -1:
+        #         npc_x -= 6
+
+        #         if npcDetail[i][1] == -1:
+        #             npc_z -= random.uniform(7.5, 15)
+        #         elif npcDetail[i][1] == 1:
+        #             npc_z += random.uniform(7.5, 15)
+        #         # else:
+        #         #     npc_z += random.uniform(7.5, 15)
+        #     elif npcDetail[i][0] == 0:
+        #         if npcDetail[i][1] == -1:
+        #             npc_z -= random.uniform(7.5, 15)
+        #         elif npcDetail[i][1] == 1:
+        #             npc_z += random.uniform(7.5, 15)
+        #         else:
+        #             npc_z += random.uniform(7.5, 15)
+        #     elif npcDetail[i][0] == 1:
+        #         npc_x += 6
+        #         if npcDetail[i][1] == -1:
+        #             npc_z -= random.uniform(7.5, 15)
+        #         elif npcDetail[i][1] == 1:
+        #             npc_z += random.uniform(7.5, 15)
+        #         # else:
+        #         #     npc_z += random.uniform(7.5, 15)
+
+        #     for npcLocate in npcPosition:
+        #         if abs(npc_x - ego.state.position.x) <= 1.5:
+        #             if npcDetail[i][0] == -1:
+        #                 npc_x -= 6
+        #             elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
+        #                 npc_x += 6
+        #             if abs(npc_z - ego.state.position.z) <= 7.5:
+        #                 if npcDetail[i][1] == -1:
+        #                     npc_z -= 7.5
+        #                 elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
+        #                     npc_z += 7.5
+
+        #         if abs(npc_x - npcLocate[0]) <= 6:
+        #             if npcDetail[i][0] == -1:
+        #                 npc_x -= 8
+        #             elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
+        #                 npc_x += 8
+
+        #             if abs(npc_z - npcLocate[2]) <= 5:
+        #                 if npcDetail[i][1] == -1:
+        #                     npc_z -= 7.5
+        #                 elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
+        #                     npc_z += 7.5
+        #     npcPosition.append([npc_x, npc_y, npc_z])
+
+        # self.npcList = []
+        # for position in npcPosition:
+        #     self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
 
 
     def runGen(self, scenarioObj, weather):
@@ -431,10 +462,45 @@ class LgApSimulation:
         """
 
         # initialize simulation
-        self.initSimulator()
+        self.restartLGSVL()
 
         sim = self.sim
         ego = self.ego
+
+        # Set signal loop
+        controllables = self.sim.get_controllables("signal")
+        for c in controllables:
+            signal = self.sim.get_controllable(c.transform.position, "signal")
+            control_policy = "trigger=200;green=50;yellow=5;red=5;loop"
+            signal.control(control_policy)
+
+        def on_collision(agent1, agent2, contact):
+            """
+            collision listener function
+            """
+
+            if agent2 is None or agent1 is None:
+                self.isEgoFault = True
+                util.print_debug(" --- Hit road obstacle --- ")
+                return
+
+            apollo = agent1
+            npcVehicle = agent2
+            if agent2.name == "8e776f67-63d6-4fa3-8587-ad00a0b41034":
+                apollo = agent2
+                npcVehicle = agent1
+
+            util.print_debug(" --- On Collision, ego speed: " + str(apollo.state.speed) + ", NPC speed: " + str(
+                npcVehicle.state.speed))
+            if apollo.state.speed <= 0.005:
+                self.isEgoFault = False
+                return
+            print("ego collision")
+            self.isCollision += 1
+
+        print("self is collison***", self.isCollision)
+
+        ego.on_collision(on_collision)
 
         numOfTimeSlice = len(scenarioObj[0])
         numOfNpc = len(scenarioObj)
@@ -759,45 +825,10 @@ class LgApSimulation:
         util.print_debug("\n === Run simulation === [" + date_time + "]")
 
         ego = self.ego
-        # Set signal loop
-        controllables = self.sim.get_controllables("signal")
-        for c in controllables:
-            signal = self.sim.get_controllable(c.transform.position, "signal")
-            control_policy = "trigger=200;green=50;yellow=0;red=0;loop"
-            signal.control(control_policy)
 
         # Print ego position
         print("====== Ego Position ======")
         print(ego.state.position.x, ego.state.position.z, ego.state.rotation.y, ego.state.rotation.x)
-
-
-        def on_collision(agent1, agent2, contact):
-            """
-            collision listener function
-            """
-            print("ego collision")
-            self.isCollision += 1
-
-            if agent2 is None or agent1 is None:
-                self.isEgoFault = True
-                util.print_debug(" --- Hit road obstacle --- ")
-                return
-
-            apollo = agent1
-            npcVehicle = agent2
-            if agent2.name == "8e776f67-63d6-4fa3-8587-ad00a0b41034":
-                apollo = agent2
-                npcVehicle = agent1
-
-            util.print_debug(" --- On Collision, ego speed: " + str(apollo.state.speed) + ", NPC speed: " + str(
-                npcVehicle.state.speed))
-            if apollo.state.speed <= 0.005:
-                self.isEgoFault = False
-                return
-
-        print("self is collison***", self.isCollision)
-
-        ego.on_collision(on_collision)
 
         ge = MultiObjGenticAlgorithm(GaData.bounds, GaData.mutationProb, GaData.crossoverProb,
                                      GaData.popSize, GaData.numOfNpc, GaData.numOfTimeSlice, GaData.maxGen)
