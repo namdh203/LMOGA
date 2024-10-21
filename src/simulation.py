@@ -92,8 +92,6 @@ class LgApSimulation:
             elif self.mapName == "12da60a7-2fc9-474d-a62a-5cc08cb97fe8":    #sanfrancisco
                 self.initEvPos = lgsvl.Vector(-328.1, 10.2, 45.5)
                 self.endEvPos = lgsvl.Vector(-445.7, 10.2, -22.7)
-                # self.initEvPos = lgsvl.Vector(533.150024414063, 10.2, 553.948913574219)
-                # self.endEvPos = lgsvl.Vector(-847.312927246094, 10.2, 176.858657836914)
                 egoState.transform.rotation.y = 81
                 egoState.transform.rotation.x = 0
             elif self.mapName == "aae03d2a-b7ca-4a88-9e41-9035287a12cc":    #BorregasAve
@@ -141,8 +139,6 @@ class LgApSimulation:
         print(self.BRIDGE_HOST)
         # Dreamview setup
         dv = lgsvl.dreamview.Connection(self.sim, ego, APOLLO_HOST, str(DREAMVIEW_PORT))
-        # dv.set_hd_map('SanFrancisco')
-        # dv.set_vehicle('Lincoln2017MKZ_LGSVL')
         spawns = self.sim.get_spawn()
 
         modules = [
@@ -156,13 +152,15 @@ class LgApSimulation:
             # 'Traffic Light',
             'Control'
         ]
-        # destination = spawns[0].destinations[0]
-        # dv.disable_apollo()
-        # dv.setup_apollo(destination.position.x, destination.position.z, 0, modules)
-        # dv.setup_apollo(self.endEvPos.x, self.endEvPos.z, 0, modules)
 
         dv.set_destination(self.endEvPos.x, self.endEvPos.z, 0, CoordType.Unity)
         time.sleep(5)
+
+    def restartLGSVL(self):
+        self.initSimulator()
+        self.loadMap()
+        self.initEV()
+        self.connectEvToApollo()
 
     def addNpcVehicle(self, posVector, vehicleType="SUV"):
         sim = self.sim
@@ -220,9 +218,9 @@ class LgApSimulation:
         aChange = []
         jerkChange = []
         for i in range(1, len(egoSpeedList)):
-            aChange.append((egoSpeedList[i] - egoSpeedList[i - 1]) / (0.25))
+            aChange.append((egoSpeedList[i] - egoSpeedList[i - 1]) / (0.5))
         for j in range(1, len(aChange)):
-            jerkChange.append((aChange[j] - aChange[j - 1]) / 0.25)
+            jerkChange.append((aChange[j] - aChange[j - 1]) / 0.5)
         return np.var(jerkChange)
 
     def findttc(self, ego, npc):
@@ -359,90 +357,73 @@ class LgApSimulation:
         else:
             return 'left'
 
-    def save_state(self):
-        sim = self.sim
-        state = {}
-        state['ttc'] = 100000
-        state['worldEffect'] = {
-            'rain': sim.weather.rain,
-            'fog': sim.weather.fog,
-            'wetness': sim.weather.wetness,
-            'cloudiness': sim.weather.cloudiness,
-            'damage': sim.weather.damage,
-        }
+    def initNpcVehicles(self, numOfNpc):
+        # Set initial position of npc vehicle
+        ego = self.ego
+        npcPosition = []
+        npcDetail = []
+        for npcs in range(numOfNpc):
+            row = random.randint(-1, 1)
+            col = random.randint(-1, 1)
+            npcDetail.append([row, col])
 
-        cnt = 0
-        for agent in sim.get_agents():
-            agent_state = {
-                'positionX': agent.state.transform.position.x,
-                'positionY': agent.state.transform.position.y,
-                'positionZ': agent.state.transform.position.z,
-                'rotationX': agent.state.transform.rotation.x,
-                'rotationY': agent.state.transform.rotation.y,
-                'rotationZ': agent.state.transform.rotation.z,
-                'velocityX': agent.state.velocity.x,
-                'velocityY': agent.state.velocity.y,
-                'velocityZ': agent.state.velocity.z,
-                'angularVelocityX': agent.state.angular_velocity.x,
-                'angularVelocityY': agent.state.angular_velocity.y,
-                'angularVelocityZ': agent.state.angular_velocity.z
-            }
-            state[f"agent{cnt}"] = agent_state
-            cnt += 1
+        for i in range(len(npcDetail)):
+            npc_x = ego.state.position.x
+            npc_y = ego.state.position.y
+            npc_z = ego.state.position.z
+            if npcDetail[i][0] == -1:
+                npc_x -= 6
 
-        self.saveState = state
-
-    def rollBack(self, save_path="vehicle_states.json"):
-        if self.saveState != {}:
-            saveState = self.saveState
-
-            if os.stat(save_path).st_size > 0:
-                epsilon = 0
-                print("epsilon:", epsilon)
-                if random.random() <= epsilon:
-                    with open(save_path, 'r') as infile:
-                        vehicle_states = json.load(infile)
-                        saveState = vehicle_states
-                    self.chooseStateJson = True
+                if npcDetail[i][1] == -1:
+                    npc_z -= random.uniform(7.5, 15)
+                elif npcDetail[i][1] == 1:
+                    npc_z += random.uniform(7.5, 15)
+                # else:
+                #     npc_z += random.uniform(7.5, 15)
+            elif npcDetail[i][0] == 0:
+                if npcDetail[i][1] == -1:
+                    npc_z -= random.uniform(7.5, 15)
+                elif npcDetail[i][1] == 1:
+                    npc_z += random.uniform(7.5, 15)
                 else:
-                    self.chooseStateJson = False
+                    npc_z += random.uniform(7.5, 15)
+            elif npcDetail[i][0] == 1:
+                npc_x += 6
+                if npcDetail[i][1] == -1:
+                    npc_z -= random.uniform(7.5, 15)
+                elif npcDetail[i][1] == 1:
+                    npc_z += random.uniform(7.5, 15)
+                # else:
+                #     npc_z += random.uniform(7.5, 15)
 
-            sim = self.sim
-            weather = saveState['worldEffect']
-            sim.weather = lgsvl.WeatherState(rain=weather['rain'], fog=weather['fog'], wetness=weather['wetness'], cloudiness=weather['cloudiness'],
-                                         damage=weather['damage'])
-            sim.set_time_of_day((10 + time_offset) % 24, fixed=True)
-            cnt = 0
-            current_agents = {}
-            for agent in self.sim.get_agents():
-                current_agents[f"agent{cnt}"] = agent
-                cnt += 1
-            state_agents = saveState.keys()
+            for npcLocate in npcPosition:
+                if abs(npc_x - ego.state.position.x) <= 1.5:
+                    if npcDetail[i][0] == -1:
+                        npc_x -= 6
+                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
+                        npc_x += 6
+                    if abs(npc_z - ego.state.position.z) <= 7.5:
+                        if npcDetail[i][1] == -1:
+                            npc_z -= 7.5
+                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
+                            npc_z += 7.5
 
-            # for agent_uid in list(current_agents):
-            #     if agent_uid not in state_agents:
-            #         print("this delete work!")
-            #         self.sim.remove_agent(current_agents[agent_uid])
+                if abs(npc_x - npcLocate[0]) <= 6:
+                    if npcDetail[i][0] == -1:
+                        npc_x -= 8
+                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
+                        npc_x += 8
 
-            for agent_uid, agent_state in saveState.items():
-                if agent_uid in current_agents:
-                    agent = current_agents[agent_uid]
-                    position = lgsvl.Vector(agent_state['positionX'], agent_state['positionY'], agent_state['positionZ'])
-                    rotation = lgsvl.Vector(agent_state['rotationX'], agent_state['rotationY'], agent_state['rotationZ'])
-                    velocity = lgsvl.Vector(agent_state['velocityX'], agent_state['velocityY'], agent_state['velocityZ'])
-                    angular_velocity = lgsvl.Vector(
-                        agent_state['angularVelocityX'],
-                        agent_state['angularVelocityY'],
-                        agent_state['angularVelocityZ']
-                    )
+                    if abs(npc_z - npcLocate[2]) <= 5:
+                        if npcDetail[i][1] == -1:
+                            npc_z -= 7.5
+                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
+                            npc_z += 7.5
+            npcPosition.append([npc_x, npc_y, npc_z])
 
-                    state = lgsvl.AgentState()
-                    state.transform.position = position
-                    state.transform.rotation = rotation
-                    state.velocity = velocity
-                    print("agent uid, velocity", agent_uid, velocity)
-                    state.angular_velocity = angular_velocity
-                    agent.state = state
+        for position in npcPosition:
+            self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
+
 
     def runGen(self, scenarioObj, weather):
         """
@@ -450,21 +431,23 @@ class LgApSimulation:
         """
 
         # initialize simulation
-        self.rollBack()
+        self.initSimulator()
+
         sim = self.sim
         ego = self.ego
 
         numOfTimeSlice = len(scenarioObj[0])
         numOfNpc = len(scenarioObj)
+
+        # initialize npc vehicles
+        self.initNpcVehicles(numOfNpc)
+
         deltaDList = [[self.maxint for i in range(numOfTimeSlice)] for j in
                       range(numOfNpc)]  # 1-D: NPC; 2-D: Time Slice
         dList = [[self.maxint for i in range(numOfTimeSlice)] for j in range(numOfNpc)]  # 1-D: NPC; 2-D:me Slice
         MinNpcSituations = [[self.maxint for i in range(numOfTimeSlice)] for j in range(numOfNpc)]
         egoSpeedList = []
         egoPathList = []
-        router = open('trajectory.obj', 'rb')
-        localPath = pickle.load(router)
-        router.close()
 
         sim.weather = lgsvl.WeatherState(rain=weather[0], fog=weather[1], wetness=weather[2], cloudiness=weather[3],
                                          damage=weather[4])
@@ -654,17 +637,7 @@ class LgApSimulation:
                 # restart when npc lost
                 for j in range(6):
                     totalDistances = 0
-                    forward = lgsvl.utils.transform_to_forward(ego.state.transform)
-                    # position = ego.state.transform.position + 15 * forward
-                    # signal = sim.get_controllable(position, "signal")
-                    # print("signal current", signal.current_state)
-                    if math.sqrt(
-                            (self.initEvPos.x - ego.state.transform.position.x) ** 2 +
-                            (self.initEvPos.z - ego.state.transform.position.z) ** 2) < 15:
-                        print("accelarate when started!!")
-                        ego.state.velocity = 6 * forward
-                    else:
-                        ego.state.velocity = 3 * forward
+                    # forward = lgsvl.utils.transform_to_forward(ego.state.transform)
                     minDistances = 999
                     for npc in npcList:
                         minDistances = min(minDistances, math.sqrt(
@@ -715,11 +688,6 @@ class LgApSimulation:
                         minNpcSituation[k] = [minD, min_situation, npcth]
                         k += 1
 
-                    # fbr = open(self.bridgeLogPath, 'r')
-                    # fbrLines = fbr.readlines()
-                    # for line in fbrLines:
-                    #     pass
-
                     # restart Apollo when ego offline
                     while not ego.bridge_connected:
                         print("+++++++++++++++++++++++=", ego.bridge_connected)
@@ -762,22 +730,6 @@ class LgApSimulation:
         ttc = self.findFitness(deltaDList, dList, self.isEgoFault, self.isHit, hitTime)
         print("ttc", ttc)
 
-        if os.stat("vehicle_states.json").st_size == 0:
-            with open("vehicle_states.json", 'w') as outfile:
-                self.saveState['ttc'] = ttc
-                json.dump(self.saveState, outfile)
-        else:
-            with open("vehicle_states.json", 'r') as infile:
-                vehicle_states = json.load(infile)
-                print("json ttc", vehicle_states['ttc'])
-                if vehicle_states['ttc'] > ttc:
-                    with open("vehicle_states.json", 'w') as outfile:
-                        if self.chooseStateJson == False:
-                            self.saveState['ttc'] = ttc
-                            json.dump(self.saveState, outfile)
-                        else:
-                            vehicle_states['ttc'] = ttc
-                            json.dump(vehicle_states, outfile)
 
         resultDic['ttc'] = -ttc
         resultDic['smoothness'] = self.jerk(egoSpeedList)
@@ -818,72 +770,6 @@ class LgApSimulation:
         print("====== Ego Position ======")
         print(ego.state.position.x, ego.state.position.z, ego.state.rotation.y, ego.state.rotation.x)
 
-        # Set initial position of npc vehicle
-        npcPosition = []
-        npcDetail = []
-        for npcs in range(GaData.numOfNpc):
-            row = random.randint(-1, 1)
-            col = random.randint(-1, 1)
-            npcDetail.append([row, col])
-
-        for i in range(len(npcDetail)):
-            npc_x = ego.state.position.x
-            npc_y = ego.state.position.y
-            npc_z = ego.state.position.z
-            if npcDetail[i][0] == -1:
-                npc_x -= 6
-
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                # else:
-                #     npc_z += random.uniform(7.5, 15)
-            elif npcDetail[i][0] == 0:
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                else:
-                    npc_z += random.uniform(7.5, 15)
-            elif npcDetail[i][0] == 1:
-                npc_x += 6
-                if npcDetail[i][1] == -1:
-                    npc_z -= random.uniform(7.5, 15)
-                elif npcDetail[i][1] == 1:
-                    npc_z += random.uniform(7.5, 15)
-                # else:
-                #     npc_z += random.uniform(7.5, 15)
-
-            for npcLocate in npcPosition:
-                if abs(npc_x - ego.state.position.x) <= 1.5:
-                    if npcDetail[i][0] == -1:
-                        npc_x -= 6
-                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-                        npc_x += 6
-                    if abs(npc_z - ego.state.position.z) <= 7.5:
-                        if npcDetail[i][1] == -1:
-                            npc_z -= 7.5
-                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-                            npc_z += 7.5
-
-                if abs(npc_x - npcLocate[0]) <= 6:
-                    if npcDetail[i][0] == -1:
-                        npc_x -= 8
-                    elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-                        npc_x += 8
-
-                    if abs(npc_z - npcLocate[2]) <= 5:
-                        if npcDetail[i][1] == -1:
-                            npc_z -= 7.5
-                        elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-                            npc_z += 7.5
-            npcPosition.append([npc_x, npc_y, npc_z])
-
-        for position in npcPosition:
-            self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
-
-        self.save_state()
 
         def on_collision(agent1, agent2, contact):
             """
