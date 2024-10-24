@@ -19,14 +19,6 @@ from MutlChromosome import MutlChromosome
 
 import json
 
-# 70.31.197.180:41343 -> 22/tcp
-# 70.31.197.180:41175 -> 5900/tcp
-# 70.31.197.180:41196 -> 5901/tcp
-# 70.31.197.180:41212 -> 6666/tcp
-# 70.31.197.180:41352 -> 8888/tcp
-# 70.31.197.180:41069 -> 8966/tcp
-# 70.31.197.180:41052 -> 9090/tcp
-
 APOLLO_HOST = "112.137.129.161"  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 9988
@@ -45,8 +37,8 @@ class LgApSimulation:
         self.ego = None  # There is only one ego
         self.initEvPos = lgsvl.Vector(769, 10, -40)
         self.endEvPos = lgsvl.Vector(-847.312927246094, 10, 176.858657836914)
-        # self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
-        self.mapName = "bd77ac3b-fbc3-41c3-a806-25915c777022"
+        self.mapName = "12da60a7-2fc9-474d-a62a-5cc08cb97fe8"
+        # self.mapName = "bd77ac3b-fbc3-41c3-a806-25915c777022"
         self.roadNum = 1
         self.npcList = []  # The list contains all the npc added
         self.pedetrianList = []
@@ -369,91 +361,34 @@ class LgApSimulation:
         npcDetail = []
         def is_valid_pos(pos_x, pos_y, pos_z):
             # print("dist", math.sqrt((pos_x - ego.state.position.x) ** 2 + (pos_z - ego.state.position.z) ** 2))
-            if math.sqrt((pos_x - ego.state.position.x) ** 2 + (pos_z - ego.state.position.z) ** 2) < 20:
+            if math.sqrt((pos_x - ego.state.position.x) ** 2 + (pos_z - ego.state.position.z) ** 2) < 15:
                 return False
             for pos in npcPosition:
-                if math.sqrt((pos_x - pos[0]) ** 2 + (pos_z - pos[2]) ** 2) < 20:
+                if math.sqrt((pos_x - pos[0]) ** 2 + (pos_z - pos[2]) ** 2) < 15:
                     return False
             return True
 
         for i in range(numOfNpc):
-            while True:
-                # print("random choice position npc...")
+            lim = 0
+            while lim < 50:
+                print("random choice position npc...")
                 row = random.choice([-1, 0, 1]) * 10
-                col = random.choice([-1, 1]) * random.uniform(15, 25)
+                col = random.uniform(-25, 25)
                 npc_x = ego.state.position.x + row
                 npc_y = ego.state.position.y
                 npc_z = ego.state.position.z + col
                 if is_valid_pos(npc_x, npc_y, npc_z):
                     npcPosition.append([npc_x, npc_y, npc_z])
                     break
+                lim += 1
+            if lim >= 50:
+                return False
 
         self.npcList = []
         for position in npcPosition:
             self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
 
-        # for npcs in range(numOfNpc):
-        #     row = random.randint(-1, 1)
-        #     col = random.randint(-1, 1)
-        #     npcDetail.append([row, col])
-
-        # for i in range(len(npcDetail)):
-        #     npc_x = ego.state.position.x
-        #     npc_y = ego.state.position.y
-        #     npc_z = ego.state.position.z
-        #     if npcDetail[i][0] == -1:
-        #         npc_x -= 6
-
-        #         if npcDetail[i][1] == -1:
-        #             npc_z -= random.uniform(7.5, 15)
-        #         elif npcDetail[i][1] == 1:
-        #             npc_z += random.uniform(7.5, 15)
-        #         # else:
-        #         #     npc_z += random.uniform(7.5, 15)
-        #     elif npcDetail[i][0] == 0:
-        #         if npcDetail[i][1] == -1:
-        #             npc_z -= random.uniform(7.5, 15)
-        #         elif npcDetail[i][1] == 1:
-        #             npc_z += random.uniform(7.5, 15)
-        #         else:
-        #             npc_z += random.uniform(7.5, 15)
-        #     elif npcDetail[i][0] == 1:
-        #         npc_x += 6
-        #         if npcDetail[i][1] == -1:
-        #             npc_z -= random.uniform(7.5, 15)
-        #         elif npcDetail[i][1] == 1:
-        #             npc_z += random.uniform(7.5, 15)
-        #         # else:
-        #         #     npc_z += random.uniform(7.5, 15)
-
-        #     for npcLocate in npcPosition:
-        #         if abs(npc_x - ego.state.position.x) <= 1.5:
-        #             if npcDetail[i][0] == -1:
-        #                 npc_x -= 6
-        #             elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-        #                 npc_x += 6
-        #             if abs(npc_z - ego.state.position.z) <= 7.5:
-        #                 if npcDetail[i][1] == -1:
-        #                     npc_z -= 7.5
-        #                 elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-        #                     npc_z += 7.5
-
-        #         if abs(npc_x - npcLocate[0]) <= 6:
-        #             if npcDetail[i][0] == -1:
-        #                 npc_x -= 8
-        #             elif npcDetail[i][0] == 1 or npcDetail[i][0] == 0:
-        #                 npc_x += 8
-
-        #             if abs(npc_z - npcLocate[2]) <= 5:
-        #                 if npcDetail[i][1] == -1:
-        #                     npc_z -= 7.5
-        #                 elif npcDetail[i][1] == 1 or npcDetail[i][1] == 0:
-        #                     npc_z += 7.5
-        #     npcPosition.append([npc_x, npc_y, npc_z])
-
-        # self.npcList = []
-        # for position in npcPosition:
-        #     self.addNpcVehicle(lgsvl.Vector(position[0], position[1], position[2]))
+        return True
 
 
     def runGen(self, scenarioObj, weather):
@@ -506,7 +441,7 @@ class LgApSimulation:
         numOfNpc = len(scenarioObj)
 
         # initialize npc vehicles
-        self.initNpcVehicles(numOfNpc)
+        checkInitNpc = self.initNpcVehicles(numOfNpc)
 
         deltaDList = [[self.maxint for i in range(numOfTimeSlice)] for j in
                       range(numOfNpc)]  # 1-D: NPC; 2-D: Time Slice
@@ -529,6 +464,12 @@ class LgApSimulation:
         actionChangeFreq = totalSimTime / numOfTimeSlice
         hitTime = numOfNpc
         resultDic = {}
+
+        if checkInitNpc == False:
+            resultDic['ttc'] = ''
+            resultDic['fault'] = ''
+            print('Can not initalize npc...')
+            return resultDic
 
         print("numOfTimeSlice", numOfTimeSlice)
 
