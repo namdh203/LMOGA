@@ -27,12 +27,14 @@ if os.path.isfile(objPath):
     with open(objPath, "rb") as f_f:
         result = pickle.load(f_f)
 
-    now = datetime.now()
-    date_time = now.strftime("%m-%d-%Y-%H-%M-%S")
+    print(result)
 
-    storage = []
-    for pop in result:
-        print("ttc, smoothness, collision", pop.ttc, pop.smoothness, pop.isCollision)
-        storage.append([pop.ttc, pop.smoothness, pop.isCollision])
+    # now = datetime.now()
+    # date_time = now.strftime("%m-%d-%Y-%H-%M-%S")
 
-    write_csv_file("Populations_information_" + date_time, ["ttc", "smoothness", "collision"], storage)
+    # storage = []
+    # for pop in result:
+    #     print("ttc, smoothness, collision", pop.ttc, pop.smoothness, pop.isCollision)
+    #     storage.append([pop.ttc, pop.smoothness, pop.isCollision])
+
+    # write_csv_file("Populations_information_" + date_time, ["ttc", "smoothness", "collision"], storage)

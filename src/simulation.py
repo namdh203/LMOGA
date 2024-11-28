@@ -661,7 +661,6 @@ class LgApSimulation:
                         return resultDic
                     k = 0  # k th npc
                     self.egoSpeed.append(ego.state.speed)
-                    # print("egoSpeed list", self.egoSpeed[-1])
                     self.egoLocation.append(ego.state.transform)
 
                     if len(self.egoLocation) >= 36:
