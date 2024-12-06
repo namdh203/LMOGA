@@ -16,7 +16,7 @@ import numpy as np
 from lgsvl.dreamview import CoordType
 from shapely.geometry.polygon import Point, Polygon
 
-from MutlChromosome import MutlChromosome
+from MutlChromosome_v1 import MutlChromosome
 
 import json
 
@@ -57,6 +57,7 @@ class LgApSimulation:
         self.maxint = 130
         self.egoFaultDeltaD = 0
         self.isCollision = 0
+        self.load_map_traffic_condition()
 
     def get_speed(self, vehicle):
         vel = vehicle.state.velocity
@@ -393,15 +394,15 @@ class LgApSimulation:
         d_angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
 
         if d_angle == 0:
-            return "OneLaneBefore"
+            return "SameLaneBehind"
         elif d_angle < 37.0:
-            return 'before'
+            return 'behind'
         elif 37.0 <= d_angle <= 143:
             return 'parall'
         elif d_angle == 180:
-            return "OneLaneAfter"
+            return "SameLaneAhead"
         else:
-            return 'after'
+            return 'ahead'
 
     def is_within_distance_right(self, target_transform, current_transform):
         """
@@ -533,87 +534,163 @@ class LgApSimulation:
             minNpcSituation = [0 for o in range(numOfNpc)]
             lane_stateList = []
             speedsList = []
+            genes = []
 
             i = 0
             for npc in npcList:
-
+                is_motif = None
                 # Motif Gene
                 if isinstance(scenarioObj[i][t][0], dict):
+                    is_motif = True
                     lane_state = []
                     speeds = []
-                    situation = self.is_within_distance_ahead(npc.state.transform, ego.state.transform)
-                    Command = scenarioObj[i][t][1]
+                    situation = self.is_within_distance_ahead(ego.state.transform, npc.state.transform)
+                    direct = self.is_within_distance_right(ego.state.transform, npc.state.transform)
+                    junction_id, is_near_junction = self.is_in_junction(npc.state.transform)
+                    # Command = scenarioObj[i][t][1]
                     decelerate = scenarioObj[i][t][0]['decelerate']
                     accalare = scenarioObj[i][t][0]['accalare']
-                    lanechangspeed = scenarioObj[i][t][0]['lanechangspeed']
+                    lanechangspeed = scenarioObj[i][t][0]['lanechangspeed'] # -100: left, -150: right
                     stop = scenarioObj[i][t][0]['stop']
+                    turn_left = scenarioObj[i][t][0]['turn_left'] # -200
+                    turn_right = scenarioObj[i][t][0]['turn_right'] # -300
+                    u_turn = scenarioObj[i][t][0]['u_turn'] # -400
 
+                    list_lane_state = []
+                    list_speeds = []
                     # Get action based on situation
-                    if Command == 0:
-                        if situation == "OneLaneBefore":
-                            lane_state = copy.deepcopy([0])
-                            speeds = copy.deepcopy([decelerate])
-                        elif situation == "before":
-                            lane_state = copy.deepcopy([0, -100])
-                            speeds = copy.deepcopy([decelerate, lanechangspeed])
-                        elif situation == "parall":
-                            lane_state = copy.deepcopy([-100])
-                            speeds = copy.deepcopy([lanechangspeed])
-                        elif situation == "after":
-                            lane_state = copy.deepcopy([0, -100])
-                            speeds = copy.deepcopy([accalare, lanechangspeed])
-                        elif situation == "OneLaneAfter":
-                            lane_state = copy.deepcopy([-100, 0, -100])
-                            speeds = copy.deepcopy([lanechangspeed, accalare, lanechangspeed])
-                    elif Command == 1:
-                        if situation == "OneLaneBefore":
-                            lane_state = copy.deepcopy([0, 0])
-                            speeds = copy.deepcopy([decelerate, stop])
-                        elif situation == "before":
-                            lane_state = copy.deepcopy([0, -100, 0])
-                            speeds = copy.deepcopy([decelerate, lanechangspeed, stop])
-                        elif situation == "parall":
-                            lane_state = copy.deepcopy([-100, 0])
-                            speeds = copy.deepcopy([lanechangspeed, stop])
-                        elif situation == "after":
-                            lane_state = copy.deepcopy([0, -100, 0])
-                            speeds = copy.deepcopy([accalare, lanechangspeed, stop])
-                        elif situation == "OneLaneAfter":
-                            lane_state = copy.deepcopy([-100, 0, -100, 0])
-                            speeds = copy.deepcopy([lanechangspeed, accalare, lanechangspeed, stop])
-                    elif Command == 2:
-                        if situation == "OneLaneBefore":
-                            lane_state = copy.deepcopy([0, 0])
-                            speeds = copy.deepcopy([decelerate, decelerate])
-                        elif situation == "before":
-                            lane_state = copy.deepcopy([0, -100, 0])
-                            speeds = copy.deepcopy([decelerate, lanechangspeed, decelerate])
-                        elif situation == "parall":
-                            lane_state = copy.deepcopy([-100, 0])
-                            speeds = copy.deepcopy([lanechangspeed, decelerate])
-                        elif situation == "after":
-                            lane_state = copy.deepcopy([0, -100, 0])
-                            speeds = copy.deepcopy([accalare, lanechangspeed, decelerate])
-                        elif situation == "OneLaneAfter":
-                            lane_state = copy.deepcopy([-100, 0, -100, 0])
-                            speeds = copy.deepcopy([lanechangspeed, accalare, lanechangspeed, decelerate])
-                    elif Command == 3:
-                        if situation == "OneLaneBefore":
-                            lane_state = copy.deepcopy([0, -100])
-                            speeds = copy.deepcopy([accalare, lanechangspeed])
-                        else:
-                            lane_state = copy.deepcopy([0])
-                            speeds = copy.deepcopy([accalare])
-                    elif Command == 4:
-                        if situation == "parall" or situation == "before":
-                            lane_state = copy.deepcopy([-100, -100])
-                            speeds = copy.deepcopy([lanechangspeed, lanechangspeed])
-                        elif situation == "after":
-                            lane_state = copy.deepcopy([0, -100, -100])
-                            speeds = copy.deepcopy([accalare, lanechangspeed, lanechangspeed])
-                        else:
-                            lane_state = copy.deepcopy([0])
-                            speeds = copy.deepcopy([accalare])
+                    if is_near_junction != 0:
+                        if situation == "behind" and direct == 'left':
+                            list_lane_state = [
+                                copy.deepcopy([0, 0]),
+                                copy.deepcopy([0, 0]),
+                                copy.deepcopy([-400, -150]),
+                                copy.deepcopy([-400, 0, -150]),
+                                copy.deepcopy([-300, 0]),
+                                copy.deepcopy([-300, 0]),
+                                copy.deepcopy([-300, -100]),
+                                copy.deepcopy([-200])
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([accalare, stop]),
+                                copy.deepcopy([accalare, decelerate]),
+                                copy.deepcopy([u_turn, lanechangspeed]),
+                                copy.deepcopy([u_turn, accalare, lanechangspeed]),
+                                copy.deepcopy([turn_right, stop]),
+                                copy.deepcopy([turn_right, decelerate]),
+                                copy.deepcopy([turn_right, lanechangspeed]),
+                                copy.deepcopy([turn_left])
+                            ]
+
+                        if situation == "behind" and direct == 'right':
+                            list_lane_state = [
+                                copy.deepcopy([0, 0]),
+                                copy.deepcopy([0, 0]),
+                                copy.deepcopy([-400, 0]),
+                                copy.deepcopy([-400, 0]),
+                                copy.deepcopy([-300, -100, 0]),
+                                copy.deepcopy([-300, -100, 0]),
+                                copy.deepcopy([-200, 0]),
+                                copy.deepcopy([-200, 0]),
+                                copy.deepcopy([-200, -150, 0])
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([accalare, stop]),
+                                copy.deepcopy([accalare, decelerate]),
+                                copy.deepcopy([u_turn, stop]),
+                                copy.deepcopy([u_turn, decelerate]),
+                                copy.deepcopy([turn_right, lanechangspeed, stop]),
+                                copy.deepcopy([turn_right, lanechangspeed, decelerate]),
+                                copy.deepcopy([turn_left, stop]),
+                                copy.deepcopy([turn_left, decelerate]),
+                                copy.deepcopy([turn_left, lanechangspeed, accalare])
+                            ]
+                    elif situation == "SameLaneAhead":
+                        list_lane_state = [
+                            copy.deepcopy([0]),
+                            copy.deepcopy([0]),
+                            copy.deepcopy([-100, -150]),
+                            copy.deepcopy([-150, -100]),
+                        ]
+                        list_speeds = [
+                            copy.deepcopy([stop]),
+                            copy.deepcopy([decelerate]),
+                            copy.deepcopy([lanechangspeed, lanechangspeed]),
+                            copy.deepcopy([lanechangspeed, lanechangspeed])
+                        ]
+
+                    elif situation == "ahead":
+                        if direct == 'left':
+                            list_lane_state = [
+                                copy.deepcopy([-150, 0]),
+                                copy.deepcopy([-150, 0]),
+                                copy.deepcopy([-150, -100, -150]),
+                                copy.deepcopy([-150, -150, -100]),
+                                copy.deepcopy([0, -150])
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([lanechangspeed, stop]),
+                                copy.deepcopy([lanechangspeed, decelerate]),
+                                copy.deepcopy([lanechangspeed, lanechangspeed, lanechangspeed]),
+                                copy.deepcopy([lanechangspeed, lanechangspeed, lanechangspeed]),
+                                copy.deepcopy([decelerate, lanechangspeed]),
+                            ]
+                        elif direct == 'right':
+                            list_lane_state = [
+                                copy.deepcopy([-100, 0]),
+                                copy.deepcopy([-100, 0]),
+                                copy.deepcopy([-100, -100, -150]),
+                                copy.deepcopy([-100, -150, -100]),
+                                copy.deepcopy([0, -100])
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([lanechangspeed, stop]),
+                                copy.deepcopy([lanechangspeed, decelerate]),
+                                copy.deepcopy([lanechangspeed, lanechangspeed, lanechangspeed]),
+                                copy.deepcopy([lanechangspeed, lanechangspeed, lanechangspeed]),
+                                copy.deepcopy([decelerate, lanechangspeed]),
+                            ]
+                    elif situation == "parall" or situation == "behind":
+                        if direct == 'left':
+                            list_lane_state = [
+                                copy.deepcopy([0, -150]),
+                                copy.deepcopy([0, -150, 0]),
+                                copy.deepcopy([0, -150, 0]),
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([accalare, lanechangspeed]),
+                                copy.deepcopy([accalare, lanechangspeed, stop]),
+                                copy.deepcopy([accalare, lanechangspeed, decelerate]),
+                            ]
+                        elif direct == 'right':
+                            list_lane_state = [
+                                copy.deepcopy([0, -100]),
+                                copy.deepcopy([0, -100, 0]),
+                                copy.deepcopy([0, -100, 0]),
+                            ]
+                            list_speeds = [
+                                copy.deepcopy([accalare, lanechangspeed]),
+                                copy.deepcopy([accalare, lanechangspeed, stop]),
+                                copy.deepcopy([accalare, lanechangspeed, decelerate]),
+                            ]
+                    elif situation == "SameLaneBehind":
+                        list_lane_state = [
+                            copy.deepcopy([0, -100, 0, -150]),
+                            copy.deepcopy([0, -150, 0, -100]),
+                            copy.deepcopy([-100, 0, -150]),
+                            copy.deepcopy([-150, 0, -100]),
+                        ]
+                        list_speeds = [
+                            copy.deepcopy([accalare, lanechangspeed, accalare, lanechangspeed]),
+                            copy.deepcopy([accalare, lanechangspeed, accalare, lanechangspeed]),
+                            copy.deepcopy([lanechangspeed, accalare, lanechangspeed]),
+                            copy.deepcopy([lanechangspeed, accalare, lanechangspeed]),
+                        ]
+
+                    len_list = len(list_lane_state)
+                    index_list = random.randrange(0, len_list)
+                    lane_state = list_lane_state[index_list]
+                    speeds = list_speeds[index_list]
 
                     if len(lane_state) < 4:
                         tmpaction = [0] * (4 - len(lane_state))
@@ -623,6 +700,7 @@ class LgApSimulation:
 
                 # Atom Gene
                 else:
+                    is_motif = False
                     if isinstance(scenarioObj[i][t][0], list) and isinstance(scenarioObj[i][t][1], list):
                         lane_state = scenarioObj[i][t][1]
                         speeds = scenarioObj[i][t][0]
@@ -641,6 +719,7 @@ class LgApSimulation:
 
                 lane_stateList.append(lane_state)
                 speedsList.append(speeds)
+                genes.append(is_motif)
                 self.npcAction[i] += lane_state
                 i += 1
 
@@ -655,30 +734,27 @@ class LgApSimulation:
                 h = 0
                 for npc in npcList:
                     # Execute the action of MotifGene
-                    if speedsList[h][0] + speedsList[h][1] + speedsList[h][2] + speedsList[h][3] < 8:
-                        if ego.state.speed == 0:
-                            ego_speed = 10
+                    if genes[h] == True:
+                        if lane_stateList[h][x] <= -200:
+                            print("motif turn trigger!!. NPC number:", h, lane_stateList[h][x])
+
                         else:
-                            ego_speed = ego.state.speed
-                            situation = self.is_within_distance_ahead(npc.state.transform, ego.state.transform)
-                            if situation == 'after':
-                                ego_speed *= 1.5 * 1.8
-
-                        self.setNpcSpeed(npc, ego_speed * speedsList[h][x])
-
-                        lane_change = 0
-                        if lane_stateList[h][x] == -100:
-                            if self.is_within_distance_right(ego.state.transform, npc.state.transform) == 'left':
-                                lane_change += -1
+                            ego_speed = 0
+                            if ego.state.speed == 0:
+                                ego_speed = 10
                             else:
-                                lane_change += 1
+                                ego_speed = ego.state.speed
+                                situation = self.is_within_distance_ahead(npc.state.transform, ego.state.transform)
+                                if situation == 'ahead':
+                                    ego_speed *= 2.7
 
-                        if lane_change == -1:
-                            direction = "LEFT"
-                            self.setNpcChangeLane(npc, direction)
-                        elif lane_change == 1:
-                            direction = "RIGHT"
-                            self.setNpcChangeLane(npc, direction)
+                            npc.follow_closest_lane(True, ego_speed * speedsList[h][x])
+
+                            if lane_stateList[h][x] == -100:
+                                self.setNpcChangeLane(npc, "LEFT")
+                            elif lane_stateList[h][x] == -150:
+                                self.setNpcChangeLane(npc, "RIGHT")
+
                     # Execute the action of AtomGene
                     else:
                         self.setNpcSpeed(npc, speedsList[h][x])
@@ -694,31 +770,9 @@ class LgApSimulation:
 
                 # restart when npc lost
                 for j in range(6):
-                    # minDistances = 999
-                    # for npc in npcList:
-                    #     minDistances = min(minDistances, math.sqrt(
-                    #         (npc.state.transform.position.x - ego.state.transform.position.x) ** 2 +
-                    #         (npc.state.transform.position.z - ego.state.transform.position.z) ** 2))
-                    #     # print("npc postion", npc.state.transform.position.x, npc.state.transform.position.z)
-                    # print("(j, minDistances)", j, minDistances)
-                    # print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    # if minDistances > 130:
-                    #     resultDic['ttc'] = ''
-                    #     resultDic['fault'] = 'npcTooLong'
-                    #     print("npc too long detected")
-                    #     print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    #     return resultDic
                     k = 0  # k th npc
                     self.egoSpeed.append(ego.state.speed)
                     self.egoLocation.append(ego.state.transform)
-                    # if len(self.egoLocation) >= 36:
-                    #     if math.sqrt((self.egoLocation[-1].position.x - self.egoLocation[0].position.x) ** 2 +
-                    #                 (self.egoLocation[-1].position.z - self.egoLocation[0].position.z) ** 2) <= 20:
-                    #         print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    #         print("ego stop too long...")
-                    #         resultDic['ttc'] = ''
-                    #         resultDic['fault'] = ''
-                    #         return resultDic
 
                     for npc in npcList:
                         self.npcSpeed[k].append(npc.state.velocity)
@@ -758,13 +812,6 @@ class LgApSimulation:
 
                     egoSpeedList.append(self.get_speed(ego))
                     egoPathList.append(ego.state.position)
-                    # if math.sqrt((ego.state.position.x - self.endEvPos.x) ** 2 + (
-                    #         ego.state.position.z - self.endEvPos.z) ** 2) <= 7:
-                    #     print("Reach Destinaiton!!!")
-                    #     print("ego position", ego.state.transform.position.x, ego.state.transform.position.z)
-                    #     resultDic['ttc'] = ''
-                    #     resultDic['fault'] = ''
-                    #     return resultDic
 
                     sim.run(0.5)
                     # 4 * 0.25 * 12 * 4

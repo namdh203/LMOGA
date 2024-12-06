@@ -12,7 +12,7 @@ import numpy as np
 from shapely.geometry.polygon import Point, Polygon
 import lgsvl.geometry
 
-APOLLO_HOST = "116.106.2.91"  # or 'localhost'
+APOLLO_HOST = ""  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 42164
 BRIDGE_PORT = 42077
