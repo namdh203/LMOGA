@@ -10,7 +10,7 @@ def main():
     GaData.mutationProb = 0.5  # mutation rate
     GaData.crossoverProb = 0.5  # crossover rate
     GaData.popSize = 4
-    GaData.numOfNpc = 3
+    GaData.numOfNpc = 7
     GaData.numOfTimeSlice = 4
     GaData.maxGen = 15 #600
     isRestart = False
@@ -27,7 +27,8 @@ def main():
         s_f.truncate()
         s_f.close()
 
-        os.system("python3 simulation.py scenario.obj result.obj")
+        # os.system("python3 simulation.py scenario.obj result.obj")
+        os.system("python3 simulation_v1.py scenario.obj result.obj")
         resultObj = None
 
         # Read fitness score

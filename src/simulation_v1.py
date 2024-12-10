@@ -20,7 +20,7 @@ from MutlChromosome_v1 import MutlChromosome
 
 import json
 
-APOLLO_HOST = ""  # or 'localhost'
+APOLLO_HOST = "27.65.254.208"  # or 'localhost'
 PORT = 8977
 DREAMVIEW_PORT = 32428
 BRIDGE_PORT = 32487
@@ -69,7 +69,7 @@ class LgApSimulation:
         self.sim = sim
 
     def loadMap(self):
-        print("load Map")
+        print("load Map...")
         sim = self.sim
         print(sim.current_scene)
         if sim.current_scene == self.mapName:
@@ -113,10 +113,40 @@ class LgApSimulation:
 
     def addNpcVehicle(self, posVector, vehicleType="SUV"):
         sim = self.sim
+
+        def on_collision(agent1, agent2, contact):
+            """
+            collision listener function
+            """
+
+            if agent2 is None or agent1 is None:
+                self.isEgoFault = True
+                util.print_debug(" --- Hit road obstacle --- ")
+                return
+
+            apollo = agent1
+            npcVehicle = agent2
+            if agent2.name == "8e776f67-63d6-4fa3-8587-ad00a0b41034":
+                apollo = agent2
+                npcVehicle = agent1
+            else:
+                self.isCollision += 1
+                print("ego collision")
+
+
+            util.print_debug(" --- On Collision, ego speed: " + str(apollo.state.speed) + ", NPC speed: " + str(
+                npcVehicle.state.speed))
+            npcVehicle.follow_closest_lane(True, 0)
+
+            if apollo.state.speed <= 0.005:
+                self.isEgoFault = False
+                return
+
         npcList = self.npcList
         npcState = lgsvl.AgentState()
         npcState.transform = sim.map_point_on_lane(posVector)
         npc = sim.add_agent(vehicleType, lgsvl.AgentType.NPC, npcState)
+        npc.on_collision(on_collision)
         npcList.append(npc)
 
     def addPedetrian(self, posVector, peopleType="Bob"):
@@ -194,12 +224,11 @@ class LgApSimulation:
             lanes_junctions_map = pickle.load(file3)
         file3.close()
 
-    def get_way_point_on_lane(self, lane_id, npc):
+    def get_way_point_on_lane(self, lane_id, set_speed):
         sim = self.sim
         wp = []
         points = []
 
-        first_point = sim.map_to_gps(npc.transform)
         for i in range (len(lanes_map[lane_id]['central_curve'])):
             point = lanes_map[lane_id]['central_curve'][i]
             point_on_lane = [point['x'], point['y']]
@@ -215,7 +244,7 @@ class LgApSimulation:
 
             rotation = (360 - rotation) % 360
             cur_point = self.transform_apollo_coord_to_lgsvl_coord(points[i][0], points[i][1])
-            wp.append(lgsvl.DriveWaypoint(cur_point.position, speed=13.4, angle=lgsvl.Vector(0, rotation, 0)))
+            wp.append(lgsvl.DriveWaypoint(cur_point.position, speed=set_speed, angle=lgsvl.Vector(0, rotation, 0)))
 
         return wp
 
@@ -251,8 +280,10 @@ class LgApSimulation:
         pp2 = Polygon(ohter_points)
         return pp.distance(pp2)
 
-    def is_in_junction(self, p_point):
-        p_point = Point(p_point)
+    def is_in_junction(self, object_transform): #p_point is vector of position lgsvl
+        sim = self.sim
+        gps = sim.map_to_gps(object_transform)
+        p_point = Point(np.array([gps.easting, gps.northing]))
         closet_dis = 999999
         res_id = 0
 
@@ -265,7 +296,10 @@ class LgApSimulation:
                 closet_dis = dis
                 res_id = id
 
-        if closet_dis <= 20:
+        print("closet dis", closet_dis)
+        if closet_dis <= 0.5:
+            return res_id, 2
+        elif closet_dis <= 20:
             return res_id, 1
         else:
             return None, 0
@@ -425,6 +459,34 @@ class LgApSimulation:
         else:
             return 'left'
 
+    def is_cross_junction(self, target_transform, current_transform):
+        target_transform = sim.map_point_on_lane(lgsvl.Vector(target_transform.position.x,
+            target_transform.position.y, target_transform.position.z))
+        current_transform = sim.map_point_on_lane(lgsvl.Vector(current_transform.position.x,
+            current_transform.position.y, current_transform.position.z))
+
+        target_vector = np.array([
+            target_transform.position.x - current_transform.position.x,
+            target_transform.position.z - current_transform.position.z
+        ])
+        norm_target = np.linalg.norm(target_vector)
+        if norm_target < 0.001:
+            return True
+
+        ego_yaw = current_transform.rotation.y
+        ego_forward = np.array([math.cos(math.radians(ego_yaw)), math.sin(math.radians(ego_yaw))])
+
+        npc_yaw = target_transform.rotation.y
+        npc_forward = np.array([math.cos(math.radians(npc_yaw)), math.sin(math.radians(npc_yaw))])
+
+        dot_product = np.dot(ego_forward, npc_forward)
+        angle = math.degrees(math.acos(np.clip(dot_product, -1.0, 1.0)))
+
+        if 80 <= angle <= 100:
+            return "cross"
+        else:
+            return "not_cross"
+
     def initNpcVehicles(self, numOfNpc):
         # Set initial position of npc vehicle
         npcPosition = [
@@ -479,14 +541,19 @@ class LgApSimulation:
             if agent2.name == "8e776f67-63d6-4fa3-8587-ad00a0b41034":
                 apollo = agent2
                 npcVehicle = agent1
+            else:
+                self.isCollision += 1
+                print("ego collision")
+
+            npcVehicle.follow_closest_lane(True, npcVehicle.state.speed)
 
             util.print_debug(" --- On Collision, ego speed: " + str(apollo.state.speed) + ", NPC speed: " + str(
                 npcVehicle.state.speed))
             if apollo.state.speed <= 0.005:
                 self.isEgoFault = False
                 return
-            print("ego collision")
-            self.isCollision += 1
+
+
 
         print("self is collison***", self.isCollision)
 
@@ -546,7 +613,6 @@ class LgApSimulation:
                     speeds = []
                     situation = self.is_within_distance_ahead(ego.state.transform, npc.state.transform)
                     direct = self.is_within_distance_right(ego.state.transform, npc.state.transform)
-                    junction_id, is_near_junction = self.is_in_junction(npc.state.transform)
                     # Command = scenarioObj[i][t][1]
                     decelerate = scenarioObj[i][t][0]['decelerate']
                     accalare = scenarioObj[i][t][0]['accalare']
@@ -559,51 +625,54 @@ class LgApSimulation:
                     list_lane_state = []
                     list_speeds = []
                     # Get action based on situation
-                    if is_near_junction != 0:
-                        if situation == "behind" and direct == 'left':
+                    if self.is_cross_junction(ego.state.transform, npc.state.transform) == 'cross':
+                        print("npc cross", npc)
+                        if direct == 'left':
+                            print("behind left", npc)
                             list_lane_state = [
                                 copy.deepcopy([0, 0]),
                                 copy.deepcopy([0, 0]),
-                                copy.deepcopy([-400, -150]),
-                                copy.deepcopy([-400, 0, -150]),
-                                copy.deepcopy([-300, 0]),
-                                copy.deepcopy([-300, 0]),
-                                copy.deepcopy([-300, -100]),
-                                copy.deepcopy([-200])
+                                copy.deepcopy([-100, -400, -150]),
+                                copy.deepcopy([-100, -400, 0, -150]),
+                                copy.deepcopy([-150, -300, 0]),
+                                copy.deepcopy([-150, -300, 0]),
+                                copy.deepcopy([-150, -300, -100]),
+                                copy.deepcopy([-100, -200])
                             ]
                             list_speeds = [
                                 copy.deepcopy([accalare, stop]),
                                 copy.deepcopy([accalare, decelerate]),
-                                copy.deepcopy([u_turn, lanechangspeed]),
-                                copy.deepcopy([u_turn, accalare, lanechangspeed]),
-                                copy.deepcopy([turn_right, stop]),
-                                copy.deepcopy([turn_right, decelerate]),
-                                copy.deepcopy([turn_right, lanechangspeed]),
-                                copy.deepcopy([turn_left])
+                                copy.deepcopy([lanechangspeed, u_turn, lanechangspeed]),
+                                copy.deepcopy([lanechangspeed, u_turn, accalare, lanechangspeed]),
+                                copy.deepcopy([lanechangspeed, turn_right, stop]),
+                                copy.deepcopy([lanechangspeed, turn_right, decelerate]),
+                                copy.deepcopy([lanechangspeed, turn_right, lanechangspeed]),
+                                copy.deepcopy([lanechangspeed, turn_left])
                             ]
 
-                        if situation == "behind" and direct == 'right':
+                        if direct == 'right':
+                            print("behind right", npc)
                             list_lane_state = [
                                 copy.deepcopy([0, 0]),
                                 copy.deepcopy([0, 0]),
-                                copy.deepcopy([-400, 0]),
-                                copy.deepcopy([-400, 0]),
-                                copy.deepcopy([-300, -100, 0]),
-                                copy.deepcopy([-300, -100, 0]),
-                                copy.deepcopy([-200, 0]),
-                                copy.deepcopy([-200, 0]),
-                                copy.deepcopy([-200, -150, 0])
+                                copy.deepcopy([-100, -400, 0]),
+                                copy.deepcopy([-100, -400, 0]),
+                                copy.deepcopy([-150, -300, -100, 0]),
+                                copy.deepcopy([-150, -300, -100, 0]),
+                                copy.deepcopy([-100, -200, 0]),
+                                copy.deepcopy([-100, -200, 0]),
+                                copy.deepcopy([-100, -200, -150, 0])
                             ]
                             list_speeds = [
                                 copy.deepcopy([accalare, stop]),
                                 copy.deepcopy([accalare, decelerate]),
-                                copy.deepcopy([u_turn, stop]),
-                                copy.deepcopy([u_turn, decelerate]),
-                                copy.deepcopy([turn_right, lanechangspeed, stop]),
-                                copy.deepcopy([turn_right, lanechangspeed, decelerate]),
-                                copy.deepcopy([turn_left, stop]),
-                                copy.deepcopy([turn_left, decelerate]),
-                                copy.deepcopy([turn_left, lanechangspeed, accalare])
+                                copy.deepcopy([lanechangspeed, u_turn, stop]),
+                                copy.deepcopy([lanechangspeed, u_turn, decelerate]),
+                                copy.deepcopy([lanechangspeed, turn_right, lanechangspeed, stop]),
+                                copy.deepcopy([lanechangspeed, turn_right, lanechangspeed, decelerate]),
+                                copy.deepcopy([lanechangspeed, turn_left, stop]),
+                                copy.deepcopy([lanechangspeed, turn_left, decelerate]),
+                                copy.deepcopy([lanechangspeed, turn_left, lanechangspeed, accalare])
                             ]
                     elif situation == "SameLaneAhead":
                         list_lane_state = [
@@ -688,9 +757,10 @@ class LgApSimulation:
                         ]
 
                     len_list = len(list_lane_state)
-                    index_list = random.randrange(0, len_list)
-                    lane_state = list_lane_state[index_list]
-                    speeds = list_speeds[index_list]
+                    if len_list > 0:
+                        index_list = random.randrange(0, len_list)
+                        lane_state = list_lane_state[index_list]
+                        speeds = list_speeds[index_list]
 
                     if len(lane_state) < 4:
                         tmpaction = [0] * (4 - len(lane_state))
@@ -737,7 +807,48 @@ class LgApSimulation:
                     if genes[h] == True:
                         if lane_stateList[h][x] <= -200:
                             print("motif turn trigger!!. NPC number:", h, lane_stateList[h][x])
+                            junction_id, near_junction = self.is_in_junction(npc.state.transform)
+                            print("junction_id, near_junction", junction_id, near_junction)
+                            all_current_lane = self.point_convert_to_lane(npc.transform)
 
+                            if near_junction == 1 and all_current_lane != []:
+                                forward = lgsvl.utils.transform_to_forward(npc.transform)
+                                right = lgsvl.utils.transform_to_right(npc.transform)
+
+                                all_overlap_lane = lanes_map[all_current_lane[0]]['successor']
+                                target_lane_position = None
+                                if lane_stateList[h][x] == -200:
+                                    target_lane_position = npc.state.position + 20 * forward - 35 * right
+                                elif lane_stateList[h][x] == -300:
+                                    target_lane_position = npc.state.position + 10 * forward + 35 * right
+                                elif lane_stateList[h][x] == -400:
+                                    target_lane_position = npc.state.position - 35 * forward - 10 * right
+
+                                target_lane = self.point_convert_to_lane(
+                                    sim.map_point_on_lane(target_lane_position)
+                                )
+
+                                print(all_overlap_lane, target_lane)
+
+                                min_lane_distane = 100000
+                                cur_lane = None
+
+                                for overlap_lane in all_overlap_lane:
+                                    next_lane = lanes_map[overlap_lane]['successor']
+                                    for each_lane in next_lane:
+                                        for t_lane in target_lane:
+                                            d_lane_to_lane = self.distane_to_lane(t_lane, each_lane)
+                                            print("d_lane_to_lane, next_lane, target_lane, cur_lane", d_lane_to_lane, each_lane,
+                                                t_lane, overlap_lane)
+                                            if min_lane_distane > d_lane_to_lane:
+                                                min_lane_distane = d_lane_to_lane
+                                                cur_lane = overlap_lane
+
+                                wp = self.get_way_point_on_lane(cur_lane, speedsList[h][x])
+                                npc.follow(wp)
+                                print(cur_lane, min_lane_distane)
+                            else:
+                                npc.follow_closest_lane(True, speedsList[h][x])
                         else:
                             ego_speed = 0
                             if ego.state.speed == 0:
