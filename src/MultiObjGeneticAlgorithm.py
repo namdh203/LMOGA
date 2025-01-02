@@ -15,8 +15,8 @@ import dataProcessing
 class MultiObjGenticAlgorithm:
     def __init__(self, bounds, pm, pc, pop_size, NPC_size, time_size, max_gen):
         self.bounds = bounds
-        self.pm = pm
-        self.pc = pc
+        self.pm = pm #threshold_mutation
+        self.pc = pc #threshold_crossover
         self.pop_size = pop_size
         self.NPC_size = NPC_size
         self.time_size = time_size
@@ -34,6 +34,14 @@ class MultiObjGenticAlgorithm:
         self.hasRestarted = False
         self.lastRestartGen = 0
         self.bestYAfterRestart = 0
+
+    def get_fitness_min_max(self):
+        fmin = 9999
+        fmax = -9999
+        for each_pop in self.pop:
+            fmin = min(fmin, each_pop.ttc)
+            fmax = max(fmax, each_pop.ttc)
+        return fmin, fmax
 
     def set_checkpoint(self, ck_path):
         self.ck_path = ck_path
@@ -239,12 +247,18 @@ class MultiObjGenticAlgorithm:
             self.pop.append(chromosome)
 
     def mutation(self):
+        fmin, fmax = self.get_fitness_min_max()
+        pm_min = 0
+        pm_max = 0.6
+
         k = 0
         while (k < len(self.pop)):
             eachChs = self.pop[k]
+            cur_pm = (pm_max - pm_min) * (fmax - eachChs.ttc) / (fmax - fmin)
+
             k += 1
             # Check mutation probability
-            if self.pm >= random.random():
+            if cur_pm >= self.pm:
                 print("mutation ok?, popnum", k)
                 npc_index = random.randint(0, eachChs.NPC_size - 1)
                 time_index = random.randint(0, eachChs.time_size - 1)
@@ -346,15 +360,21 @@ class MultiObjGenticAlgorithm:
         """
         flag = []
         print("len pop", int(len(self.pop)))
+        fmin, fmax = self.get_fitness_min_max()
+        pc_min = 0.4
+        pc_max = 1
+
         for k in range(int(len(self.pop) / 2.0)):
             print("k cross", k)
+            i = 0
+            j = 0
+            while i in flag:
+                i = random.randint(0, self.pop_size - 1)
+            cur_pc = pc_max - (pc_max - pc_min) * (fmax - self.pop[i].ttc) / (fmax - fmin)
             # Check crossover probability
-            if self.pc > random.random():
+            if cur_pc >= self.pc:
                 # randomly select 2 chromosomes(scenarios) in pops
-                i = 0
-                j = 0
-                while i == j or (i in flag or j in flag):
-                    i = random.randint(0, self.pop_size - 1)
+                while (i == j) or (j in flag):
                     j = random.randint(0, self.pop_size - 1)
                 print("cross ok", i, j)
                 flag.append(i)

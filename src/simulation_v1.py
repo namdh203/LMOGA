@@ -1055,6 +1055,7 @@ class LgApSimulation:
             ge.pop_size = len(ge.pop)
             for t in range(len(ge.pop)):
                 ge.beforePop.append(copy.deepcopy(ge.pop[t]))
+
             ge.cross()
             print("-----cross done----")
             ge.mutation()

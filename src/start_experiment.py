@@ -7,8 +7,8 @@ from dotmap import DotMap
 def main():
     GaData = DotMap()
     GaData.bounds = [[1, 2], [0, 5], [3, 12], [0, 3], [1, 7], [-2.5, 3], [1, 10], [1, 4]]  # [[speed range], [actions]]
-    GaData.mutationProb = 0.5  # mutation rate
-    GaData.crossoverProb = 0.5  # crossover rate
+    GaData.mutationProb = 0.3  # mutation rate
+    GaData.crossoverProb = 0.7  # crossover rate
     GaData.popSize = 4
     GaData.numOfNpc = 7
     GaData.numOfTimeSlice = 4
