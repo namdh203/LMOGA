@@ -1,0 +1,7 @@
+pyyaml
+pandas
+openai
+shapely
+openpyxl
+astunparse
+scipy
