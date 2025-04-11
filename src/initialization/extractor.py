@@ -1,9 +1,15 @@
-import random
+import os
+import sys
 
-from initialization.utils.llm_util import request_response
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import random
 import re
 import logging
 import openpyxl
+
+from initialization.utils.llm_util import request_response
+from initialization.context_expander import ContextExpander
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +35,7 @@ class Extractor:
             "3. do not involve the interactive pattern after the first crash occurs;\n"
             "4. focus on the vehicles' movement and do not describe the drivers' actions.\n"
             "5. try to make the interactive pattern sequence as short as possible.\n"
+            "6. Do not include any chain-of-thought or extra commentary—only output the final response."
            )
         # "2. the verbs that describe each action is selected from {brake, decelerate, accelerate, swerve left/right, lane change left/right}; "?
         # "3. do not involve the continue driving/collide/struck/rest of vehicles in the pattern sequence;"
@@ -110,6 +117,7 @@ class Extractor:
 
 if __name__ == "__main__":
     extractor = Extractor()
+    context_expander = ContextExpander()
 #     response = """Initial actions of vehicles:
 # (V1, V2, V3): V1 was driving southbound in the second lane, V2 was stopped facing south in the third lane (a left hand turn lane) waiting to turn left, and V3 was also stopped in the third lane in front of V2 waiting to turn left.
 #
@@ -124,6 +132,10 @@ if __name__ == "__main__":
     data_rows = sheet.iter_rows(min_row=20, max_row=20, values_only=True)
     for row in data_rows:
         report = row[1]
-        print(report)
-        extracted_data = extractor.extract(report)
-        print(extracted_data)
+        print("report:", report)
+
+        expand_report = context_expander.expand(report)
+        print("expand_report:", expand_report)
+
+        extracted_data = extractor.extract(expand_report)
+        print("extracted_data:", extracted_data)

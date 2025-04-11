@@ -10,6 +10,7 @@ import astunparse
 from initialization.testcase import TestCase
 from initialization.statement import ConstructorStatement, MethodStatement
 from initialization.extractor import Extractor
+from initialization.context_expander import ContextExpander
 import logging
 import openpyxl
 
@@ -37,10 +38,12 @@ class Converter:
         self.testcase_example = ("def testcase(): \n"
                                  "  vehicle1 = NPC(lane_id= , offset= , initial_speed= ) \n"
                                  "  vehicle2 = NPC(lane_id= , offset= , initial_speed= ) \n"
-                                 "  vehicleN...\n "
+                                 "... \n"
+                                 "  vehicleN = NPC(lane_id= , offset= , initial_speed= )...\n "
                                  "  vehicle1.decelerate(target_speed= , trigger_sequence= ) \n"
                                  "  vehicle2.changeLane(target_lane= , target_speed= , trigger_sequence= )\n"
-                                 "  vehicleN..."
+                                 "...\n"
+                                 "  vehicleN.accelerate(target_speed= , trigger_sequence= )\n"
                                  )
 
         self.task_gen_testcase = "Please generate the test case corresponding to the following functional scenario: "
@@ -293,6 +296,7 @@ class Converter:
 
 
 if __name__ == "__main__":
+    context_expander = ContextExpander()
     extractor = Extractor()
     converter = Converter()
 
@@ -302,10 +306,11 @@ if __name__ == "__main__":
     for row in data_rows:
         report = row[1]
 
-    # print("------------- Report: -----------------------\n", report)
+    print("------------- Report: -----------------------\n", report)
+    expand_report = context_expander.expand(report)
+    print("------------- Expanded Report: -----------------\n", expand_report)
 
-    extracted_data = extractor.extract(report)
-
+    extracted_data = extractor.extract(expand_report)
     print("------------- Extracted Data: -----------------\n", extracted_data)
 
 #     extracted_data = {
