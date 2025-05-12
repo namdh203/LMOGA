@@ -32,10 +32,11 @@ Website of Apollo: https://apollo.auto/
 Installation of Apollo: https://github.com/ApolloAuto/apollo/blob/master/docs/01_Installation%20Instructions/apollo_software_installation_guide.md
 
 # Run
-To get started, launch and run apollo (details about how to run is in Installation of Apollo)
-Run LGSVL with all the assets like vehicles, maps,... get from SORA-SVL: https://github.com/YuqiHuai/SORA-SVL
-Config APOLLO_HOST and BRIDGE_PORT in simulator.py to connect Apollo and LGSVL through brigde.sh.
-To run the search process, config the parameter in start_experiment.py and run that file.
-To replay the recorded safety-violation scenarios, execute the main() of replay.py and set the file path of the scenario to be replayed.
+
+- To get started, launch and run Apollo (details about how to run is in Installation of Apollo)
+- Run LGSVL with all the assets like vehicles, maps,... get from SORA-SVL: https://github.com/YuqiHuai/SORA-SVL
+- Config `APOLLO_HOST` and `BRIDGE_PORT` in `simulator.py` to connect Apollo and LGSVL through `bridge.sh`
+- To run the search process, config the parameters in `start_experiment.py` and run that file
+- To replay the recorded safety-violation scenarios, execute the `main()` of `replay.py` and set the file path of the scenario to be replayed.
 
 
