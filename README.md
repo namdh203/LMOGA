@@ -1,7 +1,7 @@
-# MOSAT: Multi-Objective Search-based ADS Testing
+# LMOGA: LLM-Assisted Multi-Objective Genetic Algorithm Search-based ADS Testing
 
-This project contains the implementation of MOSAT to test Apollo in SVL simulator. 
-MOSAT applies multi-objective genetic algorithm to generate virtual scenarios which can find safety violations of ADSs.
+This project contains the implementation of LMOGA to test Apollo in LGSVL simulator. 
+LMOGA applies multi-objective genetic algorithm to generate virtual scenarios which can find safety violations of ADSs.
 
 The generation approach requires the following dependencies to run:
 
@@ -29,9 +29,13 @@ Documentation is available on: https://www.svlsimulator.com/docs/
 
 Website of Apollo: https://apollo.auto/
 
-Installation of Apollo6.0: https://www.svlsimulator.com/docs/system-under-test/apollo6-0-instructions/
+Installation of Apollo: https://github.com/ApolloAuto/apollo/blob/master/docs/01_Installation%20Instructions/apollo_software_installation_guide.md
 
 # Run
+To get started, launch and run apollo (details about how to run is in Installation of Apollo)
+Run LGSVL with all the assets like vehicles, maps,... get from SORA-SVL: https://github.com/YuqiHuai/SORA-SVL
+Config APOLLO_HOST and BRIDGE_PORT in simulator.py to connect Apollo and LGSVL through brigde.sh.
+To run the search process, config the parameter in start_experiment.py and run that file.
 To replay the recorded safety-violation scenarios, execute the main() of replay.py and set the file path of the scenario to be replayed.
 
 
