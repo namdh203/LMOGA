@@ -11,6 +11,7 @@ from initialization.testcase import TestCase
 from initialization.statement import ConstructorStatement, MethodStatement
 from initialization.extractor import Extractor
 from initialization.context_expander import ContextExpander
+from initialization.testcase_to_chromosome import TestCaseToChromosome
 import logging
 import openpyxl
 
@@ -72,6 +73,16 @@ class Converter:
                                          )
 
         self.attention_fix_param_range = "Attention: just modify the parameter ranges and output the new testcase. Do not change other part of the test case."
+
+    def convert_to_chromosome(self, extracted_data, bounds, time_size, pools):
+        """Convert accident report to MutlChromosome format"""
+        testcase, is_legal = self.convert(extracted_data)
+        if not is_legal:
+            return None
+
+        converter = TestCaseToChromosome()
+        chromosome = converter.convert(testcase, bounds, time_size, pools)
+        return chromosome
 
     def create_message(self, message):
         return [
